@@ -41,7 +41,7 @@ void accept(LexState *ls, int type)
 {
   ls->buffer[ls->length++] = ls->c;
   ls->type = type;
-  ls->c = fgetc(ls->file);
+  next(ls);
 }
 
 Token *reset(LexState *ls)

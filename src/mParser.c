@@ -48,14 +48,12 @@ Node *expect(ParserState *ps, int tokenTypes)
         return node;
     }
 
-    char buffer[100];
-    sprintf(buffer, "Unexpected token: %.*s, line: %d, col: %d",
+    fprintf(stderr, "Syntax error: Unexpected token '%.*s' on line %d, column %d\n",
             ps->token->len,
             ps->token->buf,
             ps->ls->line,
             ps->ls->col);
-    perror(buffer);
-    return NULL;
+    exit(EXIT_FAILURE);
 }
 
 Node *parse(ParserState *ps)
@@ -65,7 +63,7 @@ Node *parse(ParserState *ps)
         expect(ps, T_LPAREN);
         Node *node = expect(ps, T_NAME);
 
-        while (ps->token->type != T_RPAREN)
+        while ((ps->token->type & (T_RPAREN | T_NOMATCH | T_EOF)) == 0)
         {
             Node *sub = parse(ps);
             if (node->sub)
