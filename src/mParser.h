@@ -20,19 +20,16 @@
 #include <stdio.h>
 
 #include "mAssert.h"
-#include "mToken.h"
 #include "mLexer.h"
+#include "mNode.h"
 
-typedef struct Node
+typedef struct ParserState
 {
-    Token *value;
-    struct Node *next;
-    struct Node *sub;
-} Node;
+    LexState *ls;
+    Token *token;
+} ParserState;
 
-Node *newNode(Token *token);
-void destroyNode(Node *node);
-void printNode(Node *node);
-Node *parse(LexState *s);
+void initParser(ParserState *ps, LexState *ls);
+Node *parse(ParserState *ps);
 
 #endif

@@ -18,20 +18,18 @@
 #define MTOKEN_H_
 
 #include <stdio.h>
-#include "mConstants.h"
 
 enum
 {
-  T_EOF = 0,
-  T_NOMATCH,
-  T_ASSIGN,
-  T_NAME,
-  T_NUMBER,
-  T_WHITESPACE,
-  T_STRING,
-  T_COMMENT,
-  T_LPAREN,
-  T_RPAREN
+  T_NOMATCH = 0,
+  T_EOF = 1 << 0,
+  T_SPACE = 1 << 1,
+  T_COMMENT = 1 << 2,
+  T_LPAREN = 1 << 3,
+  T_RPAREN = 1 << 4,
+  T_NAME = 1 << 5,
+  T_NUMBER = 1 << 6,
+  T_STRING = 1 << 7,
 };
 
 typedef struct Token

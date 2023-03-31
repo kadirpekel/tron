@@ -14,25 +14,41 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MLEXER_H_
-#define MLEXER_H_
-
+#include <stdlib.h>
 #include <stdio.h>
-#include "mConstants.h"
-#include "mToken.h"
+#include <string.h>
+#include <assert.h>
+#include <stdarg.h>
+#include <ctype.h>
 
-typedef struct LexState
+#include "mNode.h"
+
+Node *newNode(Token *token)
 {
-  FILE *file;
-  char buffer[MAX_BUFFER_SIZE];
-  int length;
-  int type;
-  char c;
-  int line;
-  int col;
-} LexState;
+    Node *node = malloc(sizeof(Node));
+    node->value = token;
+    return node;
+}
 
-void initLexState(LexState *ls, FILE *file);
-Token *lex(LexState *ls);
+void printNode(Node *node)
+{
+    printToken(node->value);
+    Node *sub = node->sub;
+    while (sub)
+    {
+        printToken(sub->value);
+        sub = sub->next;
+    }
+}
 
-#endif
+void destroyNode(Node *node)
+{
+    if (!node)
+    {
+        return;
+    }
+    destroyNode(node->sub);
+    destroyNode(node->next);
+    destroyToken(node->value);
+    free(node);
+}

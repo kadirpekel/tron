@@ -24,15 +24,18 @@
 
 int main(int argc, char **argv)
 {
-  LexState s;
-  initLexState(&s, stdin);
-  Node *node = parse(&s);
+  LexState ls;
+  initLexState(&ls, stdin);
+
+  ParserState ps;
+  initParser(&ps, &ls);
+
+  Node *node = parse(&ps);
 
   while (node->value->type != T_EOF)
   {
     printNode(node);
-
     destroyNode(node);
-    node = parse(&s);
+    node = parse(&ps);
   }
 }

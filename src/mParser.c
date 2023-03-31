@@ -23,56 +23,51 @@
 
 #include "mParser.h"
 
-Node *newNode(Token *token)
+void nextToken(ParserState *ps)
 {
-    Node *node = malloc(sizeof(Node));
-    node->value = token;
-    return node;
-}
-
-void printNode(Node *node)
-{
-    printToken(node->value);
-    Node *sub = node->sub;
-    while (sub)
+    Token *token = lex(ps->ls);
+    while ((token->type & (T_SPACE | T_COMMENT)) != 0)
     {
-        printToken(sub->value);
-        sub = sub->next;
+        token = lex(ps->ls);
     }
+    ps->token = token;
 }
 
-Node *nextNode(LexState *s)
+void initParser(ParserState *ps, LexState *ls)
 {
-    Token *token = lex(s);
-    while (token->type == T_WHITESPACE || token->type == T_COMMENT)
+    ps->ls = ls;
+    nextToken(ps);
+}
+
+Node *expect(ParserState *ps, int tokenTypes)
+{
+    if ((ps->token->type & tokenTypes) != 0)
     {
-        token = lex(s);
+        Node *node = newNode(ps->token);
+        nextToken(ps);
+        return node;
     }
-    return newNode(token);
+
+    char buffer[100];
+    sprintf(buffer, "Unexpected token: %.*s, line: %d, col: %d",
+            ps->token->len,
+            ps->token->buf,
+            ps->ls->line,
+            ps->ls->col);
+    perror(buffer);
+    return NULL;
 }
 
-void destroyNode(Node *node)
+Node *parse(ParserState *ps)
 {
-    if (!node)
+    if (ps->token->type == T_LPAREN)
     {
-        return;
-    }
-    destroyNode(node->sub);
-    destroyNode(node->next);
-    destroyToken(node->value);
-    free(node);
-}
+        expect(ps, T_LPAREN);
+        Node *node = expect(ps, T_NAME);
 
-Node *parse(LexState *s)
-{
-    Node *node = nextNode(s);
-
-    if (node->value->type == T_LPAREN)
-    {
-        node = nextNode(s);
-        Node *sub = parse(s);
-        while (sub->value->type != T_RPAREN)
+        while (ps->token->type != T_RPAREN)
         {
+            Node *sub = parse(ps);
             if (node->sub)
             {
                 Node *curr = node->sub;
@@ -86,9 +81,12 @@ Node *parse(LexState *s)
             {
                 node->sub = sub;
             }
-            sub = parse(s);
         }
+        expect(ps, T_RPAREN);
+        return node;
     }
-
-    return node;
+    else
+    {
+        return expect(ps, T_NAME | T_NUMBER | T_STRING | T_EOF);
+    }
 }

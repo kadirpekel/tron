@@ -25,85 +25,102 @@
 
 // Lexical Analyzer
 
-int initLexState(LexState *s, FILE *file)
+void next(LexState *ls)
 {
-  s->len = 0;
-  s->type = T_EOF;
-  s->file = file;
-  s->c = fgetc(file);
+  ls->c = fgetc(ls->file);
 
-  return 1;
+  ls->col++;
+  if (ls->c == '\n')
+  {
+    ls->line++;
+    ls->col = 0;
+  }
 }
 
-void accept(LexState *s, int type)
+void accept(LexState *ls, int type)
 {
-  s->buf[s->len++] = s->c;
-  s->type = type;
-  s->c = fgetc(s->file);
+  ls->buffer[ls->length++] = ls->c;
+  ls->type = type;
+  ls->c = fgetc(ls->file);
 }
 
-void nextToken(LexState *s)
+Token *reset(LexState *ls)
 {
-  s->c = fgetc(s->file);
-}
-
-Token *lex(LexState *s)
-{
-
-  if (s->c == EOF)
-  {
-    accept(s, T_EOF);
-  }
-  else if (isalpha(s->c))
-  {
-    accept(s, T_NAME);
-    while (isalpha(s->c) || isdigit(s->c) || s->c == '_')
-    {
-      accept(s, T_NAME);
-    };
-  }
-  else if (isdigit(s->c))
-  {
-    accept(s, T_NUMBER);
-    while (isdigit(s->c) || s->c == '.')
-    {
-      accept(s, T_NUMBER);
-    };
-  }
-  else if (isspace(s->c))
-  {
-    accept(s, T_WHITESPACE);
-    while (isspace(s->c))
-    {
-      accept(s, T_WHITESPACE);
-    }
-  }
-  else if (s->c == '"')
-  {
-    nextToken(s);
-    while (s->c != '"')
-    {
-      accept(s, T_STRING);
-    }
-    nextToken(s);
-  }
-  else if (s->c == '(')
-  {
-    accept(s, T_LPAREN);
-  }
-  else if (s->c == ')')
-  {
-    accept(s, T_RPAREN);
-  }
-  else if (s->c == '#')
-  {
-    accept(s, T_COMMENT);
-    while (s->c != '\n')
-    {
-      accept(s, T_COMMENT);
-    }
-  }
-  Token *token = newToken(s->type, s->buf, s->len);
-  s->len = 0;
+  Token *token = newToken(ls->type, ls->buffer, ls->length);
+  ls->length = 0;
   return token;
+}
+
+void initLexState(LexState *ls, FILE *file)
+{
+  ls->length = 0;
+  ls->col = 0;
+  ls->line = 0;
+  ls->type = T_NOMATCH;
+  ls->file = file;
+  next(ls);
+}
+
+Token *lex(LexState *ls)
+{
+
+  if (ls->c == EOF)
+  {
+    accept(ls, T_EOF);
+  }
+  else if (isalpha(ls->c))
+  {
+    accept(ls, T_NAME);
+    while (isalpha(ls->c) || isdigit(ls->c) || ls->c == '_')
+    {
+      accept(ls, T_NAME);
+    };
+  }
+  else if (isdigit(ls->c))
+  {
+    accept(ls, T_NUMBER);
+    while (isdigit(ls->c) || ls->c == '.')
+    {
+      accept(ls, T_NUMBER);
+    };
+  }
+  else if (isspace(ls->c))
+  {
+    accept(ls, T_SPACE);
+    while (isspace(ls->c))
+    {
+      accept(ls, T_SPACE);
+    }
+  }
+  else if (ls->c == '"')
+  {
+    next(ls);
+    while (ls->c != '"')
+    {
+      accept(ls, T_STRING);
+    }
+    next(ls);
+  }
+  else if (ls->c == '(')
+  {
+    accept(ls, T_LPAREN);
+  }
+  else if (ls->c == ')')
+  {
+    accept(ls, T_RPAREN);
+  }
+  else if (ls->c == '#')
+  {
+    accept(ls, T_COMMENT);
+    while (ls->c != '\n')
+    {
+      accept(ls, T_COMMENT);
+    }
+  }
+  else
+  {
+    accept(ls, T_NOMATCH);
+  }
+
+  return reset(ls);
 }
