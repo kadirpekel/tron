@@ -1,0 +1,6 @@
+# This is an example comment
+(add 4 6)
+(sub 9 5)
+(mul 5 # another inline comment
+     2
+)
