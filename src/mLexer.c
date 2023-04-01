@@ -78,10 +78,10 @@ Token *lex(LexState *ls)
   }
   else if (isdigit(ls->c))
   {
-    accept(ls, T_NUMBER);
+    accept(ls, T_INT);
     while (isdigit(ls->c) || ls->c == '.')
     {
-      accept(ls, T_NUMBER);
+      accept(ls, T_INT);
     };
   }
   else if (isspace(ls->c))

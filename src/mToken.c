@@ -23,12 +23,12 @@
 
 #include "mToken.h"
 
-Token *newToken(int type, char *buf, int len)
+Token *newToken(TokenType type, char *buf, int len)
 {
     Token *token = malloc(sizeof(Token));
     token->buf = malloc((len) * sizeof(char));
     token->len = len;
-    token->type = type;
+    token->tokenType = type;
     strncpy(token->buf, buf, len);
     return token;
 }
@@ -41,5 +41,5 @@ void destroyToken(Token *token)
 
 void printToken(Token *token)
 {
-    printf("[%d] %.*s\n", token->type, token->len, token->buf);
+    printf("[%d] %.*s\n", token->tokenType, token->len, token->buf);
 }

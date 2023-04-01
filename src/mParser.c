@@ -26,7 +26,7 @@
 void nextToken(ParserState *ps)
 {
     Token *token = lex(ps->ls);
-    while ((token->type & (T_SPACE | T_COMMENT)) != 0)
+    while ((token->tokenType & (T_SPACE | T_COMMENT)) != 0)
     {
         token = lex(ps->ls);
     }
@@ -41,7 +41,7 @@ void initParser(ParserState *ps, LexState *ls)
 
 Node *expect(ParserState *ps, int tokenTypes)
 {
-    if ((ps->token->type & tokenTypes) != 0)
+    if ((ps->token->tokenType & tokenTypes) != 0)
     {
         Node *node = newNode(ps->token);
         nextToken(ps);
@@ -58,12 +58,12 @@ Node *expect(ParserState *ps, int tokenTypes)
 
 Node *parse(ParserState *ps)
 {
-    if (ps->token->type == T_LPAREN)
+    if (ps->token->tokenType == T_LPAREN)
     {
         expect(ps, T_LPAREN);
         Node *node = expect(ps, T_NAME);
 
-        while ((ps->token->type & (T_RPAREN | T_NOMATCH | T_EOF)) == 0)
+        while ((ps->token->tokenType & (T_RPAREN | T_NOMATCH | T_EOF)) == 0)
         {
             Node *sub = parse(ps);
             if (node->sub)
@@ -85,6 +85,6 @@ Node *parse(ParserState *ps)
     }
     else
     {
-        return expect(ps, T_NAME | T_NUMBER | T_STRING | T_EOF);
+        return expect(ps, T_NAME | T_INT | T_STRING | T_EOF);
     }
 }
