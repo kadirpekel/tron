@@ -21,7 +21,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#include "mLexer.h"
+#include "lexer.h"
 
 // Lexical Analyzer
 
@@ -40,23 +40,23 @@ void next(LexState *ls)
 void accept(LexState *ls, int type)
 {
   ls->buffer[ls->length++] = ls->c;
-  ls->tokenType = type;
+  ls->token_type = type;
   next(ls);
 }
 
 Token *reset(LexState *ls)
 {
-  Token *token = newToken(ls->tokenType, ls->buffer, ls->length);
+  Token *token = new_token(ls->token_type, ls->buffer, ls->length);
   ls->length = 0;
   return token;
 }
 
-void initLexState(LexState *ls, FILE *file)
+void init_lex_state(LexState *ls, FILE *file)
 {
   ls->length = 0;
   ls->col = 0;
   ls->line = 0;
-  ls->tokenType = T_NOMATCH;
+  ls->token_type = T_NOMATCH;
   ls->file = file;
   next(ls);
 }

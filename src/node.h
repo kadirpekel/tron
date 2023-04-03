@@ -19,21 +19,21 @@
 
 #include <stdio.h>
 
-#include "mAssert.h"
-#include "mToken.h"
+#include "assert.h"
+#include "token.h"
 
 typedef enum NodeType
 {
     N_NUMBER = 0,
     N_NAME = 1 << 0,
     N_EXPRESSION = 1 << 1,
-    N_ASSIGNMENT = 1 << 2,
+    N_VARINIT = 1 << 2,
 
 } NodeType;
 
 typedef struct Node
 {
-    NodeType nodeType;
+    NodeType node_type;
     void *data;
 } Node;
 
@@ -54,19 +54,19 @@ typedef struct Expression
     Node *right;
 } Expression;
 
-typedef struct Assignment
+typedef struct Variable
 {
     char *name;
     Node *expression;
-} Assignment;
+} Variable;
 
-Node *newNode(NodeType nodeType, void *data);
-Node *newAssignment(char *name, Node *expression);
-Node *newExpression(char *op, Node *left, Node *right);
-Node *newNumber(int value);
-Node *newName(char *value);
+Node *new_node(NodeType nodeType, void *data);
+Node *new_variable(char *name, Node *expression);
+Node *new_expression(char *op, Node *left, Node *right);
+Node *new_number(int value);
+Node *new_name(char *value);
 
-char *nodeToString(Node *node);
-void destroyNode(Node *node);
+char *node_to_string(Node *node);
+void destroy_node(Node *node);
 
 #endif

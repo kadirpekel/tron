@@ -14,25 +14,26 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MLEXER_H_
-#define MLEXER_H_
+#ifndef MPARSER_H_
+#define MPARSER_H_
 
 #include <stdio.h>
-#include "mConstants.h"
-#include "mToken.h"
 
-typedef struct LexState
+#include "assert.h"
+#include "lexer.h"
+#include "node.h"
+
+typedef struct ParserState
 {
-  FILE *file;
-  char buffer[MAX_BUFFER_SIZE];
-  int length;
-  int tokenType;
-  char c;
-  int line;
-  int col;
-} LexState;
+    LexState *ls;
+    Token *token;
+} ParserState;
 
-void initLexState(LexState *ls, FILE *file);
-Token *lex(LexState *ls);
+void init_parser(ParserState *ps, LexState *ls);
+Node *parse(ParserState *ps);
+
+Node *parse_term(ParserState *ps);
+Node *parse_factor(ParserState *ps);
+Node *parse_expression(ParserState *ps);
 
 #endif

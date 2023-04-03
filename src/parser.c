@@ -22,26 +22,26 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-#include "mParser.h"
+#include "parser.h"
 
-void nextToken(ParserState *ps)
+void next_token(ParserState *ps)
 {
     Token *token = lex(ps->ls);
     while ((token->tokenType & (T_SPACE | T_COMMENT)) != 0)
     {
-        destroyToken(token);
+        destroy_token(token);
         token = lex(ps->ls);
     }
     ps->token = token;
 }
 
-void initParser(ParserState *ps, LexState *ls)
+void init_parser(ParserState *ps, LexState *ls)
 {
     ps->ls = ls;
-    nextToken(ps);
+    next_token(ps);
 }
 
-void parseError(ParserState *ps, char *msg)
+void parse_error(ParserState *ps, char *msg)
 {
     fprintf(stderr, "Syntax error: %s: '%.*s' on line %d, column %d\n",
             msg,
@@ -52,114 +52,114 @@ void parseError(ParserState *ps, char *msg)
     exit(EXIT_FAILURE);
 }
 
-Token *acceptToken(ParserState *ps, TokenType tokenTypes)
+Token *accept_token(ParserState *ps, TokenType tokenTypes)
 {
     Token *token = NULL;
     if ((ps->token->tokenType & tokenTypes) != 0)
     {
         token = ps->token;
-        nextToken(ps);
+        next_token(ps);
     }
     return token;
 }
 
-Token *expectToken(ParserState *ps, TokenType tokenTypes)
+Token *expect_token(ParserState *ps, TokenType tokenTypes)
 {
     Token *token;
-    if ((token = acceptToken(ps, tokenTypes)) != NULL)
+    if ((token = accept_token(ps, tokenTypes)) != NULL)
     {
         return token;
     }
-    parseError(ps, "Unexpected token");
+    parse_error(ps, "Unexpected token");
     return NULL;
 }
 
-Token *acceptKeyword(ParserState *ps, char *keyword)
+Token *accept_keyword(ParserState *ps, char *keyword)
 {
     Token *token = NULL;
     if ((ps->token->tokenType & T_NAME) != 0 && strcmp(ps->token->buf, keyword) == 0)
     {
-        token = acceptToken(ps, T_NAME);
+        token = accept_token(ps, T_NAME);
     }
     return token;
 }
 
-Node *parseExpression(ParserState *ps)
+Node *parse_expression(ParserState *ps)
 {
-    Node *left = parseTerm(ps);
+    Node *left = parse_term(ps);
     Token *opToken;
-    if ((opToken = acceptToken(ps, T_ADD | T_SUB)) != NULL)
+    if ((opToken = accept_token(ps, T_ADD | T_SUB)) != NULL)
     {
-        Node *right = parseExpression(ps);
-        Node *node = newExpression(opToken->buf, left, right);
-        destroyToken(opToken);
+        Node *right = parse_expression(ps);
+        Node *node = new_expression(opToken->buf, left, right);
+        destroy_token(opToken);
         return node;
     }
     return left;
 }
 
-Node *parseTerm(ParserState *ps)
+Node *parse_term(ParserState *ps)
 {
-    Node *left = parseFactor(ps);
+    Node *left = parse_factor(ps);
     Token *opToken;
-    if ((opToken = acceptToken(ps, T_MUL | T_DIV)) != NULL)
+    if ((opToken = accept_token(ps, T_MUL | T_DIV)) != NULL)
     {
-        Node *node = newExpression(opToken->buf, left, parseTerm(ps));
-        destroyToken(opToken);
+        Node *node = new_expression(opToken->buf, left, parse_term(ps));
+        destroy_token(opToken);
         return node;
     }
     return left;
 }
 
-Node *parseFactor(ParserState *ps)
+Node *parse_factor(ParserState *ps)
 {
     if (ps->token->tokenType == T_LPAREN)
     {
-        destroyToken(expectToken(ps, T_LPAREN));
-        Node *node = parseExpression(ps);
-        destroyToken(expectToken(ps, T_RPAREN));
+        destroy_token(expect_token(ps, T_LPAREN));
+        Node *node = parse_expression(ps);
+        destroy_token(expect_token(ps, T_RPAREN));
         return node;
     }
     else
     {
         Node *node = NULL;
-        Token *leafToken = expectToken(ps, T_NUMBER | T_NAME);
+        Token *leafToken = expect_token(ps, T_NUMBER | T_NAME);
         if (leafToken->tokenType == T_NUMBER)
         {
-            node = newNumber(atoi(leafToken->buf));
+            node = new_number(atoi(leafToken->buf));
         }
         else if (leafToken->tokenType == T_NAME)
         {
-            node = newName(leafToken->buf);
+            node = new_name(leafToken->buf);
         }
-        destroyToken(leafToken);
+        destroy_token(leafToken);
         return node;
     }
 }
 
-Node *parseAssignment(ParserState *ps)
+Node *parse_variable(ParserState *ps)
 {
     Node *node = NULL;
     Token *var;
-    if ((var = acceptKeyword(ps, "var")) != NULL)
+    if ((var = accept_keyword(ps, "var")) != NULL)
     {
-        Token *nameToken = expectToken(ps, T_NAME);
-        destroyToken(expectToken(ps, T_ASSIGN));
-        Node *expression = parseExpression(ps);
-        destroyToken(expectToken(ps, T_SEMICOLON));
-        node = newAssignment(nameToken->buf, expression);
-        destroyToken(nameToken);
-        destroyToken(var);
+        Token *nameToken = expect_token(ps, T_NAME);
+        destroy_token(expect_token(ps, T_ASSIGN));
+        Node *expression = parse_expression(ps);
+        destroy_token(expect_token(ps, T_SEMICOLON));
+        node = new_variable(nameToken->buf, expression);
+        destroy_token(nameToken);
+        destroy_token(var);
     }
     return node;
 }
 
-Node *parseStatement(ParserState *ps)
+Node *parse_statement(ParserState *ps)
 {
-    return parseAssignment(ps);
+    return parse_variable(ps);
 }
 
 Node *parse(ParserState *ps)
 {
-    return parseStatement(ps);
+    return parse_statement(ps);
 }

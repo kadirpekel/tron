@@ -21,9 +21,9 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#include "mToken.h"
+#include "token.h"
 
-Token *newToken(TokenType tokenType, char *buf, int len)
+Token *new_token(TokenType tokenType, char *buf, int len)
 {
     Token *token = malloc(sizeof(Token));
     token->len = len;
@@ -34,13 +34,13 @@ Token *newToken(TokenType tokenType, char *buf, int len)
     return token;
 }
 
-void destroyToken(Token *token)
+void destroy_token(Token *token)
 {
     free(token->buf);
     free(token);
 }
 
-void printToken(Token *token)
+void print_token(Token *token)
 {
     printf("[%d] %.*s\n", token->tokenType, token->len, token->buf);
 }

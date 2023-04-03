@@ -1,7 +1,7 @@
 /******************************************************************************
  * Copyright [2023] [Kadir PEKEL]
  *
- * Licensed under the Apache License, Version 2.0 (the "License"},;
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -14,39 +14,25 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MTOKEN_H_
-#define MTOKEN_H_
+#ifndef MLEXER_H_
+#define MLEXER_H_
 
 #include <stdio.h>
+#include "constants.h"
+#include "token.h"
 
-typedef enum
+typedef struct LexState
 {
-  T_NOMATCH = 0,
-  T_EOF = 1 << 0,
-  T_SPACE = 1 << 1,
-  T_COMMENT = 1 << 2,
-  T_LPAREN = 1 << 3,
-  T_RPAREN = 1 << 4,
-  T_NAME = 1 << 5,
-  T_ADD = 1 << 6,
-  T_SUB = 1 << 7,
-  T_MUL = 1 << 8,
-  T_DIV = 1 << 9,
-  T_ASSIGN = 1 << 10,
-  T_SEMICOLON = 1 << 11,
-  T_NUMBER = 1 << 12,
-  T_STRING = 1 << 13
-} TokenType;
+  FILE *file;
+  char buffer[MAX_BUFFER_SIZE];
+  int length;
+  int token_type;
+  char c;
+  int line;
+  int col;
+} LexState;
 
-typedef struct Token
-{
-  int tokenType;
-  char *buf;
-  int len;
-} Token;
-
-Token *newToken(TokenType type, char *buf, int len);
-void destroyToken(Token *token);
-void printToken(Token *token);
+void init_lex_state(LexState *ls, FILE *file);
+Token *lex(LexState *ls);
 
 #endif

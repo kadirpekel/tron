@@ -21,57 +21,57 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#include "mNode.h"
+#include "node.h"
 
-Node *newNode(NodeType nodeType, void *data)
+Node *new_node(NodeType nodeType, void *data)
 {
     Node *node = malloc(sizeof(Node));
-    node->nodeType = nodeType;
+    node->node_type = nodeType;
     node->data = data;
     return node;
 }
 
-Node *newAssignment(char *name, Node *expression)
+Node *new_variable(char *name, Node *expression)
 {
 
-    Assignment *assignment = malloc(sizeof(Assignment));
+    Variable *assignment = malloc(sizeof(Variable));
     assignment->name = malloc((strlen(name) + 1) * sizeof(char));
     strcpy(assignment->name, name);
     assignment->expression = expression;
-    return newNode(N_ASSIGNMENT, assignment);
+    return new_node(N_VARINIT, assignment);
 }
 
-Node *newExpression(char *op, Node *left, Node *right)
+Node *new_expression(char *op, Node *left, Node *right)
 {
     Expression *expression = malloc(sizeof(Expression));
     expression->op = malloc((strlen(op) + 1) * sizeof(char));
     strcpy(expression->op, op);
     expression->left = left;
     expression->right = right;
-    return newNode(N_EXPRESSION, expression);
+    return new_node(N_EXPRESSION, expression);
 }
 
-Node *newNumber(int value)
+Node *new_number(int value)
 {
     Number *number = malloc(sizeof(Number));
     number->value = value;
-    return newNode(N_NUMBER, number);
+    return new_node(N_NUMBER, number);
 }
 
-Node *newName(char *value)
+Node *new_name(char *value)
 {
     Name *name = malloc(sizeof(Name));
     name->value = malloc((strlen(value) + 1) * sizeof(char));
     strcpy(name->value, value);
-    return newNode(N_NAME, name);
+    return new_node(N_NAME, name);
 }
 
-char *nodeToString(Node *node)
+char *node_to_string(Node *node)
 {
     char *nodeTypeName;
-    switch (node->nodeType)
+    switch (node->node_type)
     {
-    case N_ASSIGNMENT:
+    case N_VARINIT:
         nodeTypeName = "ASSIGNMENT";
         break;
     case N_EXPRESSION:
@@ -92,7 +92,7 @@ char *nodeToString(Node *node)
     return result;
 }
 
-void destroyNode(Node *node)
+void destroy_node(Node *node)
 {
     if (!node)
     {

@@ -14,30 +14,22 @@
  * limitations under the License.
  ******************************************************************************/
 
-#include <stdlib.h>
+#ifndef MSYMBOL_H_
+#define MSYMBOL_H_
+
 #include <stdio.h>
-#include <ctype.h>
-#include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#define SYMBOL_TABLE_SIZE 1024
 
-int main(int argc, char **argv)
+typedef struct Symbol
 {
-  LexState ls;
-  init_lex_state(&ls, stdin);
+    char *name;
+    int value;
+    struct Symbol *next;
+} Symbol;
 
-  ParserState ps;
-  init_parser(&ps, &ls);
+Symbol *symbol_table[SYMBOL_TABLE_SIZE] = {NULL};
 
-  Node *node = parse(&ps);
-
-  while (node)
-  {
-    char *nodeString = node_to_string(node);
-    printf("%s\n", nodeString);
-    free(nodeString);
-    destroy_node(node);
-    node = parse(&ps);
-  }
-}
+#endif
