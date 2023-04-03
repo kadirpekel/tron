@@ -26,7 +26,7 @@ typedef struct LexState
   FILE *file;
   char buffer[MAX_BUFFER_SIZE];
   int length;
-  int type;
+  int tokenType;
   char c;
   int line;
   int col;

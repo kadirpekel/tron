@@ -40,13 +40,13 @@ void next(LexState *ls)
 void accept(LexState *ls, int type)
 {
   ls->buffer[ls->length++] = ls->c;
-  ls->type = type;
+  ls->tokenType = type;
   next(ls);
 }
 
 Token *reset(LexState *ls)
 {
-  Token *token = newToken(ls->type, ls->buffer, ls->length);
+  Token *token = newToken(ls->tokenType, ls->buffer, ls->length);
   ls->length = 0;
   return token;
 }
@@ -56,7 +56,7 @@ void initLexState(LexState *ls, FILE *file)
   ls->length = 0;
   ls->col = 0;
   ls->line = 0;
-  ls->type = T_NOMATCH;
+  ls->tokenType = T_NOMATCH;
   ls->file = file;
   next(ls);
 }
@@ -78,10 +78,10 @@ Token *lex(LexState *ls)
   }
   else if (isdigit(ls->c))
   {
-    accept(ls, T_INT);
+    accept(ls, T_NUMBER);
     while (isdigit(ls->c) || ls->c == '.')
     {
-      accept(ls, T_INT);
+      accept(ls, T_NUMBER);
     };
   }
   else if (isspace(ls->c))
@@ -116,6 +116,30 @@ Token *lex(LexState *ls)
     {
       accept(ls, T_COMMENT);
     }
+  }
+  else if (ls->c == '+')
+  {
+    accept(ls, T_ADD);
+  }
+  else if (ls->c == '-')
+  {
+    accept(ls, T_SUB);
+  }
+  else if (ls->c == '*')
+  {
+    accept(ls, T_MUL);
+  }
+  else if (ls->c == '/')
+  {
+    accept(ls, T_DIV);
+  }
+  else if (ls->c == '=')
+  {
+    accept(ls, T_ASSIGN);
+  }
+  else if (ls->c == ';')
+  {
+    accept(ls, T_SEMICOLON);
   }
   else
   {

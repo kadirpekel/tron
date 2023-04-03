@@ -32,9 +32,11 @@ int main(int argc, char **argv)
 
   Node *node = parse(&ps);
 
-  while (node->value->tokenType != T_EOF)
+  while (node)
   {
-    printNode(node);
+    char *nodeString = nodeToString(node);
+    printf("%s\n", nodeString);
+    free(nodeString);
     destroyNode(node);
     node = parse(&ps);
   }

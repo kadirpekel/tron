@@ -22,15 +22,51 @@
 #include "mAssert.h"
 #include "mToken.h"
 
+typedef enum NodeType
+{
+    N_NUMBER = 0,
+    N_NAME = 1 << 0,
+    N_EXPRESSION = 1 << 1,
+    N_ASSIGNMENT = 1 << 2,
+
+} NodeType;
+
 typedef struct Node
 {
-    Token *value;
-    struct Node *next;
-    struct Node *sub;
+    NodeType nodeType;
+    void *data;
 } Node;
 
-Node *newNode(Token *token);
+typedef struct Number
+{
+    int value;
+} Number;
+
+typedef struct Name
+{
+    char *value;
+} Name;
+
+typedef struct Expression
+{
+    char *op;
+    Node *left;
+    Node *right;
+} Expression;
+
+typedef struct Assignment
+{
+    char *name;
+    Node *expression;
+} Assignment;
+
+Node *newNode(NodeType nodeType, void *data);
+Node *newAssignment(char *name, Node *expression);
+Node *newExpression(char *op, Node *left, Node *right);
+Node *newNumber(int value);
+Node *newName(char *value);
+
+char *nodeToString(Node *node);
 void destroyNode(Node *node);
-void printNode(Node *node);
 
 #endif

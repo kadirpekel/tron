@@ -23,22 +23,73 @@
 
 #include "mNode.h"
 
-Node *newNode(Token *token)
+Node *newNode(NodeType nodeType, void *data)
 {
     Node *node = malloc(sizeof(Node));
-    node->value = token;
+    node->nodeType = nodeType;
+    node->data = data;
     return node;
 }
 
-void printNode(Node *node)
+Node *newAssignment(char *name, Node *expression)
 {
-    printToken(node->value);
-    Node *sub = node->sub;
-    while (sub)
+
+    Assignment *assignment = malloc(sizeof(Assignment));
+    assignment->name = malloc((strlen(name) + 1) * sizeof(char));
+    strcpy(assignment->name, name);
+    assignment->expression = expression;
+    return newNode(N_ASSIGNMENT, assignment);
+}
+
+Node *newExpression(char *op, Node *left, Node *right)
+{
+    Expression *expression = malloc(sizeof(Expression));
+    expression->op = malloc((strlen(op) + 1) * sizeof(char));
+    strcpy(expression->op, op);
+    expression->left = left;
+    expression->right = right;
+    return newNode(N_EXPRESSION, expression);
+}
+
+Node *newNumber(int value)
+{
+    Number *number = malloc(sizeof(Number));
+    number->value = value;
+    return newNode(N_NUMBER, number);
+}
+
+Node *newName(char *value)
+{
+    Name *name = malloc(sizeof(Name));
+    name->value = malloc((strlen(value) + 1) * sizeof(char));
+    strcpy(name->value, value);
+    return newNode(N_NAME, name);
+}
+
+char *nodeToString(Node *node)
+{
+    char *nodeTypeName;
+    switch (node->nodeType)
     {
-        printToken(sub->value);
-        sub = sub->next;
+    case N_ASSIGNMENT:
+        nodeTypeName = "ASSIGNMENT";
+        break;
+    case N_EXPRESSION:
+        nodeTypeName = "EXPRESSION";
+        break;
+    case N_NUMBER:
+        nodeTypeName = "NUMBER";
+        break;
+    default:
+        fprintf(stderr, "Invalid node type");
+        exit(EXIT_FAILURE);
     }
+
+    char *result;
+    int buffer_size = snprintf(NULL, 0, "NODE: %s", nodeTypeName);
+    result = (char *)malloc(buffer_size + 1); // +1 for the null-terminator
+    snprintf(result, buffer_size + 1, "NODE: %s", nodeTypeName);
+    return result;
 }
 
 void destroyNode(Node *node)
@@ -47,8 +98,9 @@ void destroyNode(Node *node)
     {
         return;
     }
-    destroyNode(node->sub);
-    destroyNode(node->next);
-    destroyToken(node->value);
+
+    // Check type of node and free associated resources accordingly
+
+    free(node->data);
     free(node);
 }

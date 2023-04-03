@@ -32,4 +32,8 @@ typedef struct ParserState
 void initParser(ParserState *ps, LexState *ls);
 Node *parse(ParserState *ps);
 
+Node *parseTerm(ParserState *ps);
+Node *parseFactor(ParserState *ps);
+Node *parseExpression(ParserState *ps);
+
 #endif

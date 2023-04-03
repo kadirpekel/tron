@@ -23,12 +23,13 @@
 
 #include "mToken.h"
 
-Token *newToken(TokenType type, char *buf, int len)
+Token *newToken(TokenType tokenType, char *buf, int len)
 {
     Token *token = malloc(sizeof(Token));
-    token->buf = malloc((len) * sizeof(char));
     token->len = len;
-    token->tokenType = type;
+    token->buf = malloc((len + 1) * sizeof(char));
+    token->buf[len] = '\0';
+    token->tokenType = tokenType;
     strncpy(token->buf, buf, len);
     return token;
 }
