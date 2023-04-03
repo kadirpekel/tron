@@ -21,6 +21,7 @@
 
 #include "assert.h"
 #include "token.h"
+#include "symbol.h"
 #include "type.h"
 
 typedef enum NodeType
@@ -29,6 +30,8 @@ typedef enum NodeType
     N_NAME = 1 << 0,
     N_EXPRESSION = 1 << 1,
     N_VARIABLE = 1 << 2,
+    N_ASSIGNMENT = 1 << 3,
+    N_CALL = 1 << 4,
 
 } NodeType;
 
@@ -62,8 +65,24 @@ typedef struct Variable
     Node *expression;
 } Variable;
 
+typedef struct Assignment
+{
+    char *name;
+    Type type;
+    Node *expression;
+} Assignment;
+
+typedef struct Call
+{
+    char *name;
+    Type type;
+    Node *arguments;
+} Call;
+
 Node *new_node(NodeType nodeType, void *data);
 Node *new_variable(char *name, Type type, Node *expression);
+Node *new_assignment(Symbol *symbol, Node *expression);
+Node *new_call(Symbol *symbol, Node *arguments);
 Node *new_expression(char *op, Node *left, Node *right);
 Node *new_number(int value);
 Node *new_name(char *value);

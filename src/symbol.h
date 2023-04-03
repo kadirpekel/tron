@@ -21,15 +21,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "type.h"
+
 #define SYMBOL_TABLE_SIZE 1024
+
+typedef enum SymbolType
+{
+    SYMBOL_VARIABLE = 0,
+    SYMBOL_FUNCTION = 1
+} SymbolType;
 
 typedef struct Symbol
 {
     char *name;
-    int value;
+    SymbolType symbol_type;
+    Type type;
     struct Symbol *next;
 } Symbol;
 
-Symbol *symbol_table[SYMBOL_TABLE_SIZE] = {NULL};
+void insert_symbol(const char *name, SymbolType symbol_type, Type type);
+Symbol *lookup_symbol(const char *name);
 
 #endif

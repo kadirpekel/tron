@@ -23,6 +23,8 @@
 
 #include "symbol.h"
 
+Symbol *symbol_table[SYMBOL_TABLE_SIZE] = {NULL};
+
 unsigned int hash(const char *str)
 {
     unsigned int hash = 5381;
@@ -34,13 +36,14 @@ unsigned int hash(const char *str)
     return hash % SYMBOL_TABLE_SIZE;
 }
 
-void insert_symbol(const char *name, int value)
+void insert_symbol(const char *name, SymbolType symbol_type, Type type)
 {
     unsigned int index = hash(name);
 
     Symbol *new_symbol = (Symbol *)malloc(sizeof(Symbol));
     new_symbol->name = strdup(name);
-    new_symbol->value = value;
+    new_symbol->symbol_type = symbol_type;
+    new_symbol->type = type;
     new_symbol->next = symbol_table[index];
 
     symbol_table[index] = new_symbol;

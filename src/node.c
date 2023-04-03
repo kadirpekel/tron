@@ -39,7 +39,28 @@ Node *new_variable(char *name, Type type, Node *expression)
     variable->type = type;
     strcpy(variable->name, name);
     variable->expression = expression;
+    insert_symbol(variable->name, SYMBOL_VARIABLE, type);
     return new_node(N_VARIABLE, variable);
+}
+
+Node *new_assignment(Symbol *symbol, Node *expression)
+{
+    Assignment *assignment = malloc(sizeof(Assignment));
+    assignment->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
+    assignment->type = symbol->type;
+    strcpy(assignment->name, symbol->name);
+    assignment->expression = expression;
+    return new_node(N_ASSIGNMENT, assignment);
+}
+
+Node *new_call(Symbol *symbol, Node *arguments)
+{
+    Call *call = malloc(sizeof(Call));
+    call->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
+    call->type = symbol->type;
+    strcpy(call->name, symbol->name);
+    call->arguments = arguments;
+    return new_node(N_CALL, call);
 }
 
 Node *new_expression(char *op, Node *left, Node *right)
@@ -73,13 +94,19 @@ char *node_to_string(Node *node)
     switch (node->node_type)
     {
     case N_VARIABLE:
-        nodeTypeName = "ASSIGNMENT";
+        nodeTypeName = "VARIABLE";
         break;
     case N_EXPRESSION:
         nodeTypeName = "EXPRESSION";
         break;
     case N_NUMBER:
         nodeTypeName = "NUMBER";
+        break;
+    case N_ASSIGNMENT:
+        nodeTypeName = "ASSIGNMENT";
+        break;
+    case N_CALL:
+        nodeTypeName = "CALL";
         break;
     default:
         fprintf(stderr, "Invalid node type");

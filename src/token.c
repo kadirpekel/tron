@@ -23,22 +23,22 @@
 
 #include "token.h"
 
-Token *new_token(TokenType tokenType, char *buf, int len)
+Token *new_token(TokenType token_type, char *buf, int len)
 {
     Token *token = malloc(sizeof(Token));
-    token->len = len;
-    token->buf = malloc((len + 1) * sizeof(char));
-    token->buf[len] = '\0';
-    token->tokenType = tokenType;
-    strncpy(token->buf, buf, len);
-    if (token->tokenType == T_NAME && strcmp(token->buf, "int") == 0)
+    token->length = len;
+    token->buffer = malloc((len + 1) * sizeof(char));
+    token->buffer[len] = '\0';
+    token->token_type = token_type;
+    strncpy(token->buffer, buf, len);
+    if (token->token_type == T_NAME && strcmp(token->buffer, "int") == 0)
     {
-        token->tokenType = T_TYPE;
+        token->token_type = T_TYPE;
         token->type = TYPE_INT;
     }
-    else if (token->tokenType == T_NAME && strcmp(token->buf, "float") == 0)
+    else if (token->token_type == T_NAME && strcmp(token->buffer, "float") == 0)
     {
-        token->tokenType = T_TYPE;
+        token->token_type = T_TYPE;
         token->type = TYPE_FLOAT;
     }
     return token;
@@ -46,11 +46,11 @@ Token *new_token(TokenType tokenType, char *buf, int len)
 
 void destroy_token(Token *token)
 {
-    free(token->buf);
+    free(token->buffer);
     free(token);
 }
 
 void print_token(Token *token)
 {
-    printf("[%d] %.*s\n", token->tokenType, token->len, token->buf);
+    printf("[%d] %.*s\n", token->token_type, token->length, token->buffer);
 }

@@ -23,6 +23,7 @@
 #include "lexer.h"
 #include "type.h"
 #include "node.h"
+#include "symbol.h"
 
 typedef struct ParserState
 {

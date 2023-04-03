@@ -40,14 +40,15 @@ typedef enum
   T_NUMBER = 1 << 13,
   T_STRING = 1 << 14,
   T_TYPE = 1 << 15,
+  T_COMMA = 1 << 16,
 } TokenType;
 
 typedef struct Token
 {
-  TokenType tokenType;
+  TokenType token_type;
   Type type;
-  char *buf;
-  int len;
+  char *buffer;
+  int length;
 } Token;
 
 Token *new_token(TokenType type, char *buf, int len);

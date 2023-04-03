@@ -145,6 +145,10 @@ Token *lex(LexState *ls)
   {
     accept(ls, T_COLON);
   }
+  else if (ls->c == ',')
+  {
+    accept(ls, T_COMMA);
+  }
   else
   {
     accept(ls, T_NOMATCH);
