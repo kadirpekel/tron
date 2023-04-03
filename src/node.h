@@ -21,13 +21,14 @@
 
 #include "assert.h"
 #include "token.h"
+#include "type.h"
 
 typedef enum NodeType
 {
     N_NUMBER = 0,
     N_NAME = 1 << 0,
     N_EXPRESSION = 1 << 1,
-    N_VARINIT = 1 << 2,
+    N_VARIABLE = 1 << 2,
 
 } NodeType;
 
@@ -57,11 +58,12 @@ typedef struct Expression
 typedef struct Variable
 {
     char *name;
+    Type type;
     Node *expression;
 } Variable;
 
 Node *new_node(NodeType nodeType, void *data);
-Node *new_variable(char *name, Node *expression);
+Node *new_variable(char *name, Type type, Node *expression);
 Node *new_expression(char *op, Node *left, Node *right);
 Node *new_number(int value);
 Node *new_name(char *value);

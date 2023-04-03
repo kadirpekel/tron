@@ -14,27 +14,14 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MPARSER_H_
-#define MPARSER_H_
+#ifndef MTYPE_H_
+#define MTYPE_H_
 
-#include <stdio.h>
-
-#include "assert.h"
-#include "lexer.h"
-#include "type.h"
-#include "node.h"
-
-typedef struct ParserState
+typedef enum Type
 {
-    LexState *ls;
-    Token *token;
-} ParserState;
-
-void init_parser(ParserState *ps, LexState *ls);
-Node *parse(ParserState *ps);
-
-Node *parse_term(ParserState *ps);
-Node *parse_factor(ParserState *ps);
-Node *parse_expression(ParserState *ps);
+    TYPE_INFER = 0,
+    TYPE_INT = 1 << 0,
+    TYPE_FLOAT = 1 << 1
+} Type;
 
 #endif

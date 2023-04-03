@@ -140,16 +140,33 @@ Node *parse_factor(ParserState *ps)
 Node *parse_variable(ParserState *ps)
 {
     Node *node = NULL;
-    Token *var;
-    if ((var = accept_keyword(ps, "var")) != NULL)
+    Token *varToken;
+    if ((varToken = accept_keyword(ps, "var")) != NULL)
     {
         Token *nameToken = expect_token(ps, T_NAME);
-        destroy_token(expect_token(ps, T_ASSIGN));
-        Node *expression = parse_expression(ps);
+
+        Type type = TYPE_INFER;
+        Token *colonToken = NULL;
+        if ((colonToken = accept_token(ps, T_COLON)) != NULL)
+        {
+            Token *typeToken = expect_token(ps, T_TYPE);
+            type = typeToken->type;
+            destroy_token(typeToken);
+            destroy_token(colonToken);
+        }
+
+        Token *assignToken = NULL;
+        Node *expression = NULL;
+        if ((assignToken = accept_token(ps, T_ASSIGN)) != NULL)
+        {
+            expression = parse_expression(ps);
+            destroy_token(assignToken);
+        }
+
         destroy_token(expect_token(ps, T_SEMICOLON));
-        node = new_variable(nameToken->buf, expression);
+        node = new_variable(nameToken->buf, type, expression);
         destroy_token(nameToken);
-        destroy_token(var);
+        destroy_token(varToken);
     }
     return node;
 }

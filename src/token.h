@@ -19,6 +19,8 @@
 
 #include <stdio.h>
 
+#include "type.h"
+
 typedef enum
 {
   T_NOMATCH = 0,
@@ -34,13 +36,16 @@ typedef enum
   T_DIV = 1 << 9,
   T_ASSIGN = 1 << 10,
   T_SEMICOLON = 1 << 11,
-  T_NUMBER = 1 << 12,
-  T_STRING = 1 << 13
+  T_COLON = 1 << 12,
+  T_NUMBER = 1 << 13,
+  T_STRING = 1 << 14,
+  T_TYPE = 1 << 15,
 } TokenType;
 
 typedef struct Token
 {
-  int tokenType;
+  TokenType tokenType;
+  Type type;
   char *buf;
   int len;
 } Token;

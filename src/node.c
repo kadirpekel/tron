@@ -31,14 +31,15 @@ Node *new_node(NodeType nodeType, void *data)
     return node;
 }
 
-Node *new_variable(char *name, Node *expression)
+Node *new_variable(char *name, Type type, Node *expression)
 {
 
-    Variable *assignment = malloc(sizeof(Variable));
-    assignment->name = malloc((strlen(name) + 1) * sizeof(char));
-    strcpy(assignment->name, name);
-    assignment->expression = expression;
-    return new_node(N_VARINIT, assignment);
+    Variable *variable = malloc(sizeof(Variable));
+    variable->name = malloc((strlen(name) + 1) * sizeof(char));
+    variable->type = type;
+    strcpy(variable->name, name);
+    variable->expression = expression;
+    return new_node(N_VARIABLE, variable);
 }
 
 Node *new_expression(char *op, Node *left, Node *right)
@@ -71,7 +72,7 @@ char *node_to_string(Node *node)
     char *nodeTypeName;
     switch (node->node_type)
     {
-    case N_VARINIT:
+    case N_VARIABLE:
         nodeTypeName = "ASSIGNMENT";
         break;
     case N_EXPRESSION:

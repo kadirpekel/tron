@@ -141,6 +141,10 @@ Token *lex(LexState *ls)
   {
     accept(ls, T_SEMICOLON);
   }
+  else if (ls->c == ':')
+  {
+    accept(ls, T_COLON);
+  }
   else
   {
     accept(ls, T_NOMATCH);

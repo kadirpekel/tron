@@ -31,6 +31,16 @@ Token *new_token(TokenType tokenType, char *buf, int len)
     token->buf[len] = '\0';
     token->tokenType = tokenType;
     strncpy(token->buf, buf, len);
+    if (token->tokenType == T_NAME && strcmp(token->buf, "int") == 0)
+    {
+        token->tokenType = T_TYPE;
+        token->type = TYPE_INT;
+    }
+    else if (token->tokenType == T_NAME && strcmp(token->buf, "float") == 0)
+    {
+        token->tokenType = T_TYPE;
+        token->type = TYPE_FLOAT;
+    }
     return token;
 }
 
