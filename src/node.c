@@ -31,12 +31,11 @@ Node *new_node(NodeType nodeType, void *data)
     return node;
 }
 
-Node *new_variable(char *name, Type type, Node *expression)
+Node *new_variable(char *name, Node *type_info, Node *expression)
 {
-
     Variable *variable = malloc(sizeof(Variable));
     variable->name = malloc((strlen(name) + 1) * sizeof(char));
-    variable->type = type;
+    variable->type_info = type_info;
     strcpy(variable->name, name);
     variable->expression = expression;
     return new_node(N_VARIABLE, variable);
@@ -46,7 +45,7 @@ Node *new_assignment(Symbol *symbol, Node *expression)
 {
     Assignment *assignment = malloc(sizeof(Assignment));
     assignment->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
-    assignment->type = symbol->type;
+    assignment->type_info = symbol->type_info;
     strcpy(assignment->name, symbol->name);
     assignment->expression = expression;
     return new_node(N_ASSIGNMENT, assignment);
@@ -56,7 +55,7 @@ Node *new_call(Symbol *symbol, Node *arguments)
 {
     Call *call = malloc(sizeof(Call));
     call->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
-    call->type = symbol->type;
+    call->type_info = symbol->type_info;
     strcpy(call->name, symbol->name);
     call->arguments = arguments;
     return new_node(N_CALL, call);
@@ -86,6 +85,13 @@ Node *new_number(int value)
     return new_node(N_NUMBER, number);
 }
 
+Node *new_type_info(Type type)
+{
+    TypeInfo *type_info = malloc(sizeof(TypeInfo));
+    type_info->type = type;
+    return new_node(N_TYPEINFO, type_info);
+}
+
 Node *new_name(char *value)
 {
     Name *name = malloc(sizeof(Name));
@@ -94,12 +100,12 @@ Node *new_name(char *value)
     return new_node(N_NAME, name);
 }
 
-Node *new_function(char *name, Type type, Node *parameters, Node *body)
+Node *new_function(char *name, Node *type_info, Node *parameters, Node *body)
 {
     Function *function = malloc(sizeof(Function));
     function->name = malloc((strlen(name) + 1) * sizeof(char));
     strcpy(function->name, name);
-    function->type = type;
+    function->type_info = type_info;
     function->parameters = parameters;
     function->body = body;
     return new_node(N_FUNCTION, function);
@@ -136,6 +142,9 @@ char *node_to_string(Node *node)
         break;
     case N_RETURN:
         nodeTypeName = "RETURN";
+        break;
+    case N_TYPEINFO:
+        nodeTypeName = "TYPEINFO";
         break;
     default:
         fprintf(stderr, "Invalid node type");

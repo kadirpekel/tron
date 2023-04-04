@@ -44,12 +44,10 @@ void init_parser(ParserState *ps, LexState *ls)
 
 void parse_error(ParserState *ps, char *msg)
 {
-    fprintf(stderr, "Syntax error: %s: '%.*s' on line %d, column %d\n",
-            msg,
-            ps->token->length,
-            ps->token->buffer,
+    fprintf(stderr, "Syntax Error <%d:%d> %s\n",
             ps->ls->line,
-            ps->ls->col);
+            ps->ls->col,
+            msg);
     exit(EXIT_FAILURE);
 }
 
@@ -83,6 +81,19 @@ Token *accept_keyword(ParserState *ps, char *keyword)
         token = accept_token(ps, T_NAME);
     }
     return token;
+}
+
+Node *parse_type_infos(ParserState *ps)
+{
+    Node *node = NULL;
+    Token *type_token;
+    if ((type_token = accept_token(ps, T_TYPE)) != NULL)
+    {
+        node = new_type_info(type_token->type);
+        destroy_token(type_token);
+    }
+
+    return node;
 }
 
 Node *parse_call(ParserState *ps, Symbol *symbol)
@@ -159,11 +170,22 @@ Node *parse_factor(ParserState *ps)
                 Symbol *symbol = lookup_symbol(ps->scope, leaf_token->buffer);
                 if (symbol != NULL)
                 {
-                    node = parse_call(ps, symbol);
-                    if (node == NULL)
+                    if (symbol->symbol_type == SYMBOL_FUNCTION)
+                    {
+                        node = parse_call(ps, symbol);
+                    }
+                    else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
                         node = new_name(leaf_token->buffer);
                     }
+                    else
+                    {
+                        parse_error(ps, "Invalid symbol found");
+                    }
+                }
+                else
+                {
+                    parse_error(ps, "Symbol not found");
                 }
             }
             destroy_token(leaf_token);
@@ -179,13 +201,15 @@ Node *parse_param(ParserState *ps)
 
     if ((name_token = accept_token(ps, T_NAME)) != NULL)
     {
-        Type type = TYPE_INFER;
+        Node *type_info = NULL;
         Token *colon_token = NULL;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
-            Token *type_token = expect_token(ps, T_TYPE);
-            type = type_token->type;
-            destroy_token(type_token);
+            type_info = parse_type_infos(ps);
+            if (type_info == NULL)
+            {
+                parse_error(ps, "Type info is missing");
+            }
             destroy_token(colon_token);
         }
 
@@ -197,7 +221,13 @@ Node *parse_param(ParserState *ps)
             destroy_token(assign_token);
         }
 
-        node = new_variable(name_token->buffer, type, expression);
+        if (type_info == NULL)
+        {
+            type_info = new_type_info(TYPE_INFER);
+        }
+        node = new_variable(name_token->buffer, type_info, expression);
+        Variable *variable = (Variable *)node->data;
+        insert_symbol(ps->scope, variable->name, SYMBOL_VARIABLE, variable->type_info->data);
         destroy_token(name_token);
     }
     return node;
@@ -212,10 +242,8 @@ Node *parse_variable(ParserState *ps)
         node = parse_param(ps);
         if (node == NULL)
         {
-            parse_error(ps, "var is not defined");
+            parse_error(ps, "Variable not initialized");
         }
-        Variable *variable = (Variable *)node->data;
-        insert_symbol(ps->scope, variable->name, SYMBOL_VARIABLE, variable->type);
         destroy_token(expect_token(ps, T_SEMICOLON));
     }
     return node;
@@ -288,24 +316,47 @@ Node *parse_function(ParserState *ps)
         Node *parameters = parse_parameters(ps);
         destroy_token(expect_token(ps, T_RPAREN));
 
-        Type type = TYPE_INFER;
+        Node *type_info = NULL;
         Token *colon_token = NULL;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
-            Token *type_token = expect_token(ps, T_TYPE);
-            type = type_token->type;
-            destroy_token(type_token);
+            type_info = parse_type_infos(ps);
+            if (type_info == NULL)
+            {
+                parse_error(ps, "Type info is missing");
+            }
             destroy_token(colon_token);
         }
         Scope *parent = ps->scope;
         ps->scope = new_scope(parent);
         Node *body = parse_block(ps);
         ps->scope = parent;
-        node = new_function(name_token->buffer, type, parameters, body);
+        if (type_info == NULL)
+        {
+            type_info = new_type_info(TYPE_INFER);
+        }
+        node = new_function(name_token->buffer, type_info, parameters, body);
         Function *function = (Function *)node->data;
-        insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type);
+        insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info->data);
         destroy_token(name_token);
         destroy_token(def_token);
+    }
+    return node;
+}
+
+Node *parse_assignment(ParserState *ps, Symbol *symbol)
+{
+    Node *node = NULL;
+    Token *assign_token = NULL;
+    if ((assign_token = accept_token(ps, T_ASSIGN)) != NULL)
+    {
+        Node *expression = parse_expression(ps);
+        if (expression == NULL)
+        {
+            parse_error(ps, "Expression required");
+        }
+        node = new_assignment(symbol, expression);
+        destroy_token(assign_token);
     }
     return node;
 }
@@ -323,27 +374,20 @@ Node *parse_namebiguity(ParserState *ps)
         {
             if (symbol->symbol_type == SYMBOL_VARIABLE)
             {
-                Token *assign_token = NULL;
-                Node *expression = NULL;
-                if ((assign_token = accept_token(ps, T_ASSIGN)) != NULL)
-                {
-                    expression = parse_expression(ps);
-                    destroy_token(assign_token);
-                }
-                node = new_assignment(symbol, expression);
+                node = parse_assignment(ps, symbol);
             }
             else if (symbol->symbol_type == SYMBOL_FUNCTION)
             {
                 node = parse_call(ps, symbol);
             }
-            destroy_token(expect_token(ps, T_SEMICOLON));
         }
-        destroy_token(name_token);
-
-        if (node == NULL)
+        else
         {
             parse_error(ps, "Symbol not found");
         }
+
+        destroy_token(expect_token(ps, T_SEMICOLON));
+        destroy_token(name_token);
     }
     return node;
 }
