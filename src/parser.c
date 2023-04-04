@@ -85,6 +85,29 @@ Token *accept_keyword(ParserState *ps, char *keyword)
     return token;
 }
 
+Node *parse_call(ParserState *ps, Symbol *symbol)
+{
+    Node *node = NULL;
+    Token *lparen_token = NULL;
+
+    if ((lparen_token = accept_token(ps, T_LPAREN)) != NULL)
+    {
+        Node *arguments = parse_expression(ps);
+
+        Token *commaToken;
+        while ((commaToken = accept_token(ps, T_COMMA)) != NULL)
+        {
+            arguments = parse_expression(ps);
+            destroy_token(commaToken);
+        }
+
+        node = new_call(symbol, arguments);
+        destroy_token(expect_token(ps, T_RPAREN));
+        destroy_token(lparen_token);
+    }
+    return node;
+}
+
 Node *parse_expression(ParserState *ps)
 {
     Node *left = parse_term(ps);
@@ -133,7 +156,15 @@ Node *parse_factor(ParserState *ps)
             }
             else if (leaf_token->token_type == T_NAME)
             {
-                node = new_name(leaf_token->buffer);
+                Symbol *symbol = lookup_symbol(ps->scope, leaf_token->buffer);
+                if (symbol != NULL)
+                {
+                    node = parse_call(ps, symbol);
+                    if (node == NULL)
+                    {
+                        node = new_name(leaf_token->buffer);
+                    }
+                }
             }
             destroy_token(leaf_token);
         }
@@ -299,32 +330,14 @@ Node *parse_namebiguity(ParserState *ps)
                     expression = parse_expression(ps);
                     destroy_token(assign_token);
                 }
-                destroy_token(expect_token(ps, T_SEMICOLON));
                 node = new_assignment(symbol, expression);
             }
             else if (symbol->symbol_type == SYMBOL_FUNCTION)
             {
-                Token *lparen_token = NULL;
-                Node *arguments = NULL;
-                if ((lparen_token = accept_token(ps, T_LPAREN)) != NULL)
-                {
-                    arguments = parse_expression(ps);
-
-                    Token *commaToken;
-                    while ((commaToken = accept_token(ps, T_COMMA)) != NULL)
-                    {
-                        arguments = parse_expression(ps);
-                        destroy_token(commaToken);
-                    }
-                    destroy_token(expect_token(ps, T_RPAREN));
-                    destroy_token(lparen_token);
-                }
-
-                destroy_token(expect_token(ps, T_SEMICOLON));
-                node = new_call(symbol, arguments);
+                node = parse_call(ps, symbol);
             }
+            destroy_token(expect_token(ps, T_SEMICOLON));
         }
-
         destroy_token(name_token);
 
         if (node == NULL)
