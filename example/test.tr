@@ -1,11 +1,21 @@
 def foo (bar: int, baz: float): float {
+
     var a: float = bar * baz;
 
     def inner() {
-        a = 4;
+        a = 1;
+
+        def deeper() {
+            a = bar * 2;
+
+            def much_deeper() {
+                a = baz * 3;
+            }
+        }
     }
 
     var b = a;
+    return b;
 }
 
 foo(4, 5);
