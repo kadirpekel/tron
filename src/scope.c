@@ -1,7 +1,7 @@
 /******************************************************************************
  * Copyright [2023] [Kadir PEKEL]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License\n");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -20,10 +20,17 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdbool.h>
 
-#include "symbol.h"
+#include "scope.h"
 
-Symbol *symbol_table[SYMBOL_TABLE_SIZE] = {NULL};
+Scope *new_scope(Scope *parent)
+{
+    Scope *scope = malloc(sizeof(Scope));
+    scope->parent = parent;
+    scope->symbol_table = malloc(SYMBOL_TABLE_SIZE * sizeof(Symbol));
+    return scope;
+}
 
 unsigned int hash(const char *str)
 {
@@ -36,7 +43,7 @@ unsigned int hash(const char *str)
     return hash % SYMBOL_TABLE_SIZE;
 }
 
-void insert_symbol(const char *name, SymbolType symbol_type, Type type)
+void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, Type type)
 {
     unsigned int index = hash(name);
 
@@ -44,15 +51,15 @@ void insert_symbol(const char *name, SymbolType symbol_type, Type type)
     new_symbol->name = strdup(name);
     new_symbol->symbol_type = symbol_type;
     new_symbol->type = type;
-    new_symbol->next = symbol_table[index];
+    new_symbol->next = scope->symbol_table[index];
 
-    symbol_table[index] = new_symbol;
+    scope->symbol_table[index] = new_symbol;
 }
 
-Symbol *lookup_symbol(const char *name)
+Symbol *lookup_symbol(Scope *scope, const char *name)
 {
     unsigned int index = hash(name);
-    Symbol *symbol = symbol_table[index];
+    Symbol *symbol = scope->symbol_table[index];
 
     while (symbol != NULL)
     {
@@ -63,5 +70,11 @@ Symbol *lookup_symbol(const char *name)
         symbol = symbol->next;
     }
 
-    return NULL;
+    return lookup_symbol(scope->parent, name);
+}
+
+void destroy_scope(Scope *scope)
+{
+    free(scope->symbol_table);
+    free(scope);
 }

@@ -23,19 +23,21 @@
 #include "lexer.h"
 #include "type.h"
 #include "node.h"
-#include "symbol.h"
+#include "scope.h"
 
 typedef struct ParserState
 {
     LexState *ls;
+    Scope *scope;
     Token *token;
 } ParserState;
 
 void init_parser(ParserState *ps, LexState *ls);
-Node *parse(ParserState *ps);
 
 Node *parse_term(ParserState *ps);
 Node *parse_factor(ParserState *ps);
 Node *parse_expression(ParserState *ps);
+Node *parse_statement(ParserState *ps);
+Node *parse(ParserState *ps);
 
 #endif

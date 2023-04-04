@@ -109,6 +109,22 @@ Token *lex(LexState *ls)
   {
     accept(ls, T_RPAREN);
   }
+  else if (ls->c == '{')
+  {
+    accept(ls, T_LCBRACET);
+  }
+  else if (ls->c == '}')
+  {
+    accept(ls, T_RCBRACET);
+  }
+  else if (ls->c == '[')
+  {
+    accept(ls, T_LBRACET);
+  }
+  else if (ls->c == ']')
+  {
+    accept(ls, T_RBRACET);
+  }
   else if (ls->c == '#')
   {
     accept(ls, T_COMMENT);

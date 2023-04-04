@@ -41,6 +41,10 @@ typedef enum
   T_STRING = 1 << 14,
   T_TYPE = 1 << 15,
   T_COMMA = 1 << 16,
+  T_LCBRACET = 1 << 17,
+  T_RCBRACET = 1 << 18,
+  T_LBRACET = 1 << 19,
+  T_RBRACET = 1 << 20,
 } TokenType;
 
 typedef struct Token

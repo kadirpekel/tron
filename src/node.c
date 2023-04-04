@@ -39,7 +39,6 @@ Node *new_variable(char *name, Type type, Node *expression)
     variable->type = type;
     strcpy(variable->name, name);
     variable->expression = expression;
-    insert_symbol(variable->name, SYMBOL_VARIABLE, type);
     return new_node(N_VARIABLE, variable);
 }
 
@@ -73,6 +72,13 @@ Node *new_expression(char *op, Node *left, Node *right)
     return new_node(N_EXPRESSION, expression);
 }
 
+Node *new_return(Node *expression)
+{
+    Return *return_ = malloc(sizeof(Return));
+    return_->expression = expression;
+    return new_node(N_RETURN, return_);
+}
+
 Node *new_number(int value)
 {
     Number *number = malloc(sizeof(Number));
@@ -88,6 +94,23 @@ Node *new_name(char *value)
     return new_node(N_NAME, name);
 }
 
+Node *new_function(char *name, Type type, Node *parameters, Node *body)
+{
+    Function *function = malloc(sizeof(Function));
+    function->name = malloc((strlen(name) + 1) * sizeof(char));
+    strcpy(function->name, name);
+    function->type = type;
+    function->parameters = parameters;
+    function->body = body;
+    return new_node(N_FUNCTION, function);
+}
+
+Node *new_block(Node *statements)
+{
+    Block *block = malloc(sizeof(Block));
+    block->statements = statements;
+    return new_node(N_BLOCK, block);
+}
 char *node_to_string(Node *node)
 {
     char *nodeTypeName;
@@ -107,6 +130,12 @@ char *node_to_string(Node *node)
         break;
     case N_CALL:
         nodeTypeName = "CALL";
+        break;
+    case N_FUNCTION:
+        nodeTypeName = "FUNCTION";
+        break;
+    case N_RETURN:
+        nodeTypeName = "RETURN";
         break;
     default:
         fprintf(stderr, "Invalid node type");

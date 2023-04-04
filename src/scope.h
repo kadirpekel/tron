@@ -14,12 +14,10 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MSYMBOL_H_
-#define MSYMBOL_H_
+#ifndef MSCOPE_H_
+#define MSCOPE_H_
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "type.h"
 
@@ -34,12 +32,20 @@ typedef enum SymbolType
 typedef struct Symbol
 {
     char *name;
-    SymbolType symbol_type;
     Type type;
+    SymbolType symbol_type;
     struct Symbol *next;
 } Symbol;
 
-void insert_symbol(const char *name, SymbolType symbol_type, Type type);
-Symbol *lookup_symbol(const char *name);
+typedef struct Scope
+{
+    struct Scope *parent;
+    Symbol **symbol_table;
+} Scope;
+
+Scope *new_scope(Scope *parent);
+void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, Type type);
+Symbol *lookup_symbol(Scope *scope, const char *name);
+void destroy_scope(Scope *scope);
 
 #endif
