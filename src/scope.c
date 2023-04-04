@@ -58,6 +58,11 @@ void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, Type 
 
 Symbol *lookup_symbol(Scope *scope, const char *name)
 {
+    if (scope == NULL)
+    {
+        return NULL;
+    }
+
     unsigned int index = hash(name);
     Symbol *symbol = scope->symbol_table[index];
 
