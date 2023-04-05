@@ -1,26 +1,10 @@
-def foo (bar: int, baz: float): float {
+var a = 3;
 
-    var a: float = bar * baz;
+var b: float = 4.42;
 
-    def inner() {
-        a = 1;
-
-        def deeper() {
-            a = bar * 2;
-
-            def much_deeper() {
-                a = baz * 3;
-                return a;
-            }
-
-            return much_deeper();
-        }
-
-        return deeper();
-    }
-
-    var b = inner() * 4;
-    return b;
+def foo(a: int, b = 4): float {
+    var c = a * b;
+    return c / 2;
 }
 
-foo(4, 5);
+foo(3);

@@ -202,7 +202,9 @@ Node *parse_param(ParserState *ps)
     if ((name_token = accept_token(ps, T_NAME)) != NULL)
     {
         Node *type_info = NULL;
-        Token *colon_token = NULL;
+        Node *expression = NULL;
+
+        Token *colon_token;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
             type_info = parse_type_infos(ps);
@@ -212,19 +214,22 @@ Node *parse_param(ParserState *ps)
             }
             destroy_token(colon_token);
         }
-
-        Token *assign_token = NULL;
-        Node *expression = NULL;
-        if ((assign_token = accept_token(ps, T_ASSIGN)) != NULL)
-        {
-            expression = parse_expression(ps);
-            destroy_token(assign_token);
-        }
-
-        if (type_info == NULL)
+        else
         {
             type_info = new_type_info(TYPE_INFER);
         }
+
+        Token *assign_token;
+        if ((assign_token = accept_token(ps, T_ASSIGN)) != NULL)
+        {
+            expression = parse_expression(ps);
+            if (expression == NULL)
+            {
+                parse_error(ps, "Assignment requires expression");
+            }
+            destroy_token(assign_token);
+        }
+
         node = new_variable(name_token->buffer, type_info, expression);
         Variable *variable = (Variable *)node->data;
         insert_symbol(ps->scope, variable->name, SYMBOL_VARIABLE, variable->type_info->data);
