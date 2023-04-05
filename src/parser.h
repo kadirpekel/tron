@@ -21,7 +21,6 @@
 
 #include "assert.h"
 #include "lexer.h"
-#include "type.h"
 #include "node.h"
 #include "scope.h"
 
@@ -34,9 +33,9 @@ typedef struct ParserState
 
 void init_parser(ParserState *ps, LexState *ls);
 
-Node *parse_term(ParserState *ps);
-Node *parse_factor(ParserState *ps);
-Node *parse_expression(ParserState *ps);
+Expression *parse_term(ParserState *ps);
+Expression *parse_factor(ParserState *ps);
+Expression *parse_expression(ParserState *ps);
 Node *parse_statement(ParserState *ps);
 Node *parse(ParserState *ps);
 

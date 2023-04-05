@@ -18,9 +18,7 @@
 #define MTOKEN_H_
 
 #include <stdio.h>
-
 #include "type.h"
-
 typedef enum
 {
   T_NOMATCH = 0,

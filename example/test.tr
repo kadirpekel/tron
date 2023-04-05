@@ -2,9 +2,9 @@ var a = 3;
 
 var b: float = 4.42;
 
-def foo(a: int, b = 4): float {
+def foo(a: int, b = 4): (float,int) {
     var c = a * b;
-    return c / 2;
+    return c / 2, 6;
 }
 
 foo(3);

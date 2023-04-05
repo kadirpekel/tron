@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 
-#include "type.h"
+#include "node.h"
 
 #define SYMBOL_TABLE_SIZE 1024
 

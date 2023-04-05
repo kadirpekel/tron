@@ -83,87 +83,155 @@ Token *accept_keyword(ParserState *ps, char *keyword)
     return token;
 }
 
-Node *parse_type_infos(ParserState *ps)
+TypeInfo *parse_type_info(ParserState *ps)
 {
-    Node *node = NULL;
+    TypeInfo *type_info = NULL;
     Token *type_token;
     if ((type_token = accept_token(ps, T_TYPE)) != NULL)
     {
-        node = new_type_info(type_token->type);
+        type_info = new_type_info(type_token->type);
         destroy_token(type_token);
     }
 
-    return node;
+    return type_info;
 }
-
-Node *parse_call(ParserState *ps, Symbol *symbol)
+TypeInfo *parse_type_infos(ParserState *ps)
 {
-    Node *node = NULL;
+    TypeInfo *type_info = NULL;
     Token *lparen_token = NULL;
 
     if ((lparen_token = accept_token(ps, T_LPAREN)) != NULL)
     {
-        Node *arguments = parse_expression(ps);
+        type_info = parse_type_info(ps);
+        if (type_info == NULL)
+        {
+            parse_error(ps, "Type info is missing");
+        }
 
         Token *commaToken;
+        TypeInfo *current = type_info;
         while ((commaToken = accept_token(ps, T_COMMA)) != NULL)
         {
-            arguments = parse_expression(ps);
+            TypeInfo *next = parse_type_info(ps);
+            if (next == NULL)
+            {
+                parse_error(ps, "Type info is missing");
+            }
+            current->next = next;
+            current = current->next;
             destroy_token(commaToken);
         }
 
-        node = new_call(symbol, arguments);
         destroy_token(expect_token(ps, T_RPAREN));
         destroy_token(lparen_token);
     }
-    return node;
+    else
+    {
+        type_info = parse_type_info(ps);
+    }
+
+    return type_info;
 }
 
-Node *parse_expression(ParserState *ps)
+Call *parse_call(ParserState *ps, Symbol *symbol)
 {
-    Node *left = parse_term(ps);
+    Call *call = NULL;
+    Token *lparen_token = NULL;
+
+    if ((lparen_token = accept_token(ps, T_LPAREN)) != NULL)
+    {
+        Expression *expression = parse_expression(ps);
+
+        Token *commaToken;
+        Expression *current = expression;
+        while ((commaToken = accept_token(ps, T_COMMA)) != NULL)
+        {
+            Expression *next = parse_expression(ps);
+            if (next == NULL)
+            {
+                parse_error(ps, "Expression is missing");
+            }
+            current->next = next;
+            current = next;
+            destroy_token(commaToken);
+        }
+
+        call = new_call(symbol->name, symbol->type_info, expression);
+        destroy_token(expect_token(ps, T_RPAREN));
+        destroy_token(lparen_token);
+    }
+    return call;
+}
+
+Expression *parse_expression(ParserState *ps)
+{
+    Expression *left = parse_term(ps);
     Token *opToken;
     if ((opToken = accept_token(ps, T_ADD | T_SUB)) != NULL)
     {
-        Node *right = parse_expression(ps);
-        Node *node = new_expression(opToken->buffer, left, right);
+        Expression *right = parse_expression(ps);
+        Expression *expresion = new_expression(opToken->buffer, left, right, L_NA, NULL);
         destroy_token(opToken);
-        return node;
+        return expresion;
     }
     return left;
 }
 
-Node *parse_term(ParserState *ps)
+Expression *parse_expressions(ParserState *ps)
 {
-    Node *left = parse_factor(ps);
+    Expression *expression = parse_expression(ps);
+
+    if (expression != NULL)
+    {
+        Token *commaToken;
+        Expression *current = expression;
+        while ((commaToken = accept_token(ps, T_COMMA)) != NULL)
+        {
+            Expression *next = parse_expression(ps);
+            if (next == NULL)
+            {
+                parse_error(ps, "Expression is missing");
+            }
+            current->next = next;
+            current = current->next;
+            destroy_token(commaToken);
+        }
+    }
+
+    return expression;
+}
+
+Expression *parse_term(ParserState *ps)
+{
+    Expression *left = parse_factor(ps);
     Token *opToken;
     if ((opToken = accept_token(ps, T_MUL | T_DIV)) != NULL)
     {
-        Node *node = new_expression(opToken->buffer, left, parse_term(ps));
+        Expression *expression = new_expression(opToken->buffer, left, parse_term(ps), L_NA, NULL);
         destroy_token(opToken);
-        return node;
+        return expression;
     }
     return left;
 }
 
-Node *parse_factor(ParserState *ps)
+Expression *parse_factor(ParserState *ps)
 {
+    Expression *expression = NULL;
+
     if (ps->token->token_type == T_LPAREN)
     {
         destroy_token(expect_token(ps, T_LPAREN));
-        Node *node = parse_expression(ps);
+        expression = parse_expression(ps);
         destroy_token(expect_token(ps, T_RPAREN));
-        return node;
     }
     else
     {
-        Node *node = NULL;
         Token *leaf_token;
         if ((leaf_token = accept_token(ps, T_NUMBER | T_NAME)) != NULL)
         {
             if (leaf_token->token_type == T_NUMBER)
             {
-                node = new_number(atoi(leaf_token->buffer));
+                expression = new_expression(leaf_token->buffer, NULL, NULL, L_NUMBER, new_number(atoi(leaf_token->buffer)));
             }
             else if (leaf_token->token_type == T_NAME)
             {
@@ -172,11 +240,16 @@ Node *parse_factor(ParserState *ps)
                 {
                     if (symbol->symbol_type == SYMBOL_FUNCTION)
                     {
-                        node = parse_call(ps, symbol);
+                        Call *call = parse_call(ps, symbol);
+                        if (call == NULL)
+                        {
+                            parse_error(ps, "Function call missing");
+                        }
+                        expression = new_expression(leaf_token->buffer, NULL, NULL, L_CALL, call);
                     }
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
-                        node = new_name(leaf_token->buffer);
+                        expression = new_expression(leaf_token->buffer, NULL, NULL, L_NAME, new_name(leaf_token->buffer));
                     }
                     else
                     {
@@ -190,24 +263,24 @@ Node *parse_factor(ParserState *ps)
             }
             destroy_token(leaf_token);
         }
-        return node;
     }
+    return expression;
 }
 
-Node *parse_param(ParserState *ps)
+Variable *parse_param(ParserState *ps)
 {
-    Node *node = NULL;
+    Variable *param = NULL;
     Token *name_token;
 
     if ((name_token = accept_token(ps, T_NAME)) != NULL)
     {
-        Node *type_info = NULL;
-        Node *expression = NULL;
+        TypeInfo *type_info = NULL;
+        Expression *expression = NULL;
 
         Token *colon_token;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
-            type_info = parse_type_infos(ps);
+            type_info = parse_type_info(ps);
             if (type_info == NULL)
             {
                 parse_error(ps, "Type info is missing");
@@ -230,58 +303,62 @@ Node *parse_param(ParserState *ps)
             destroy_token(assign_token);
         }
 
-        node = new_variable(name_token->buffer, type_info, expression);
-        Variable *variable = (Variable *)node->data;
-        insert_symbol(ps->scope, variable->name, SYMBOL_VARIABLE, variable->type_info->data);
+        param = new_variable(name_token->buffer, type_info, expression);
+        insert_symbol(ps->scope, param->name, SYMBOL_VARIABLE, param->type_info);
         destroy_token(name_token);
     }
-    return node;
+    return param;
 }
 
-Node *parse_variable(ParserState *ps)
+Variable *parse_variable(ParserState *ps)
 {
-    Node *node = NULL;
+    Variable *param = NULL;
     Token *var_token;
     if ((var_token = accept_keyword(ps, "var")) != NULL)
     {
-        node = parse_param(ps);
-        if (node == NULL)
+        param = parse_param(ps);
+        if (param == NULL)
         {
             parse_error(ps, "Variable not initialized");
         }
         destroy_token(expect_token(ps, T_SEMICOLON));
     }
-    return node;
+    return param;
 }
 
-Node *parse_return(ParserState *ps)
+Return *parse_return(ParserState *ps)
 {
-    Node *node = NULL;
+    Return *return_ = NULL;
     Token *return_token;
     if ((return_token = accept_keyword(ps, "return")) != NULL)
     {
-        node = new_return(parse_expression(ps));
+        return_ = new_return(parse_expressions(ps));
         destroy_token(expect_token(ps, T_SEMICOLON));
         destroy_token(return_token);
     }
-    return node;
+    return return_;
 }
 
 Node *parse_inner_block(ParserState *ps)
 {
-    Node *node = NULL;
+    Return *return_ = parse_return(ps);
+    if (return_ != NULL)
+    {
+        return new_node(N_RETURN, return_);
+    }
 
-    if ((node = parse_return(ps)) != NULL)
-        ;
-    else if ((node = parse_statement(ps)) != NULL)
-        ;
-    return node;
+    Node *node = parse_statement(ps);
+    if (node != NULL)
+    {
+        return node;
+    }
+
+    return NULL;
 }
 
-Node *parse_block(ParserState *ps)
+Block *parse_block(ParserState *ps)
 {
     destroy_token(expect_token(ps, T_LCBRACET));
-    Node *node = NULL;
     Node *statement = parse_inner_block(ps);
     Node *current = statement;
     while (current != NULL)
@@ -289,15 +366,15 @@ Node *parse_block(ParserState *ps)
         current->next = parse_inner_block(ps);
         current = current->next;
     }
-    node = new_block(statement);
+    Block *block = new_block(statement);
     destroy_token(expect_token(ps, T_RCBRACET));
-    return node;
+    return block;
 }
 
-Node *parse_parameters(ParserState *ps)
+Variable *parse_params(ParserState *ps)
 {
-    Node *param = parse_param(ps);
-    Node *current = param;
+    Variable *param = parse_param(ps);
+    Variable *current = param;
     Token *comma_token = accept_token(ps, T_COMMA);
     while (comma_token != NULL)
     {
@@ -308,9 +385,9 @@ Node *parse_parameters(ParserState *ps)
     return param;
 }
 
-Node *parse_function(ParserState *ps)
+Function *parse_function(ParserState *ps)
 {
-    Node *node = NULL;
+    Function *function = NULL;
     Token *def_token;
 
     if ((def_token = accept_keyword(ps, "def")) != NULL)
@@ -318,10 +395,10 @@ Node *parse_function(ParserState *ps)
         Token *name_token = expect_token(ps, T_NAME);
 
         destroy_token(expect_token(ps, T_LPAREN));
-        Node *parameters = parse_parameters(ps);
+        Variable *params = parse_params(ps);
         destroy_token(expect_token(ps, T_RPAREN));
 
-        Node *type_info = NULL;
+        TypeInfo *type_info = NULL;
         Token *colon_token = NULL;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
@@ -334,36 +411,35 @@ Node *parse_function(ParserState *ps)
         }
         Scope *parent = ps->scope;
         ps->scope = new_scope(parent);
-        Node *body = parse_block(ps);
+        Block *body = parse_block(ps);
         ps->scope = parent;
         if (type_info == NULL)
         {
             type_info = new_type_info(TYPE_INFER);
         }
-        node = new_function(name_token->buffer, type_info, parameters, body);
-        Function *function = (Function *)node->data;
-        insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info->data);
+        function = new_function(name_token->buffer, type_info, params, body);
+        insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info);
         destroy_token(name_token);
         destroy_token(def_token);
     }
-    return node;
+    return function;
 }
 
-Node *parse_assignment(ParserState *ps, Symbol *symbol)
+Assignment *parse_assignment(ParserState *ps, Symbol *symbol)
 {
-    Node *node = NULL;
+    Assignment *assignment = NULL;
     Token *assign_token = NULL;
     if ((assign_token = accept_token(ps, T_ASSIGN)) != NULL)
     {
-        Node *expression = parse_expression(ps);
+        Expression *expression = parse_expression(ps);
         if (expression == NULL)
         {
             parse_error(ps, "Expression required");
         }
-        node = new_assignment(symbol, expression);
+        assignment = new_assignment(symbol->name, symbol->type_info, expression);
         destroy_token(assign_token);
     }
-    return node;
+    return assignment;
 }
 
 Node *parse_namebiguity(ParserState *ps)
@@ -379,11 +455,21 @@ Node *parse_namebiguity(ParserState *ps)
         {
             if (symbol->symbol_type == SYMBOL_VARIABLE)
             {
-                node = parse_assignment(ps, symbol);
+                Assignment *assignment = parse_assignment(ps, symbol);
+                if (assignment == NULL)
+                {
+                    parse_error(ps, "Variable assignment missing");
+                }
+                node = new_node(N_ASSIGNMENT, assignment);
             }
             else if (symbol->symbol_type == SYMBOL_FUNCTION)
             {
-                node = parse_call(ps, symbol);
+                Call *call = parse_call(ps, symbol);
+                if (call == NULL)
+                {
+                    parse_error(ps, "Function call missing");
+                }
+                node = new_node(N_CALL, call);
             }
         }
         else
@@ -399,16 +485,25 @@ Node *parse_namebiguity(ParserState *ps)
 
 Node *parse_statement(ParserState *ps)
 {
-    Node *node;
+    Variable *variable = parse_variable(ps);
+    if (variable != NULL)
+    {
+        return new_node(N_VARIABLE, variable);
+    }
 
-    if ((node = parse_variable(ps)) != NULL)
-        ;
-    else if ((node = parse_function(ps)) != NULL)
-        ;
-    else if ((node = parse_namebiguity(ps)) != NULL)
-        ;
+    Function *function = parse_function(ps);
+    if (function != NULL)
+    {
+        return new_node(N_FUNCTION, function);
+    }
 
-    return node;
+    Node *node = parse_namebiguity(ps);
+    if (node != NULL)
+    {
+        return node;
+    }
+
+    return NULL;
 }
 
 Node *parse(ParserState *ps)

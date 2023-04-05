@@ -24,10 +24,4 @@ typedef enum Type
     TYPE_FLOAT = 1 << 1
 } Type;
 
-typedef struct TypeInfo
-{
-    Type type;
-    struct TypeInfo *next;
-} TypeInfo;
-
 #endif

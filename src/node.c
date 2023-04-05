@@ -31,91 +31,93 @@ Node *new_node(NodeType nodeType, void *data)
     return node;
 }
 
-Node *new_variable(char *name, Node *type_info, Node *expression)
+Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression)
 {
     Variable *variable = malloc(sizeof(Variable));
     variable->name = malloc((strlen(name) + 1) * sizeof(char));
     variable->type_info = type_info;
     strcpy(variable->name, name);
     variable->expression = expression;
-    return new_node(N_VARIABLE, variable);
+    return variable;
 }
 
-Node *new_assignment(Symbol *symbol, Node *expression)
+Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression)
 {
     Assignment *assignment = malloc(sizeof(Assignment));
-    assignment->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
-    assignment->type_info = symbol->type_info;
-    strcpy(assignment->name, symbol->name);
+    assignment->name = malloc((strlen(name) + 1) * sizeof(char));
+    assignment->type_info = type_info;
+    strcpy(assignment->name, name);
     assignment->expression = expression;
-    return new_node(N_ASSIGNMENT, assignment);
+    return assignment;
 }
 
-Node *new_call(Symbol *symbol, Node *arguments)
+Call *new_call(char *name, TypeInfo *type_info, Expression *expression)
 {
     Call *call = malloc(sizeof(Call));
-    call->name = malloc((strlen(symbol->name) + 1) * sizeof(char));
-    call->type_info = symbol->type_info;
-    strcpy(call->name, symbol->name);
-    call->arguments = arguments;
-    return new_node(N_CALL, call);
+    call->name = malloc((strlen(name) + 1) * sizeof(char));
+    call->type_info = type_info;
+    strcpy(call->name, name);
+    call->expression = expression;
+    return call;
 }
 
-Node *new_expression(char *op, Node *left, Node *right)
+Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf)
 {
     Expression *expression = malloc(sizeof(Expression));
     expression->op = malloc((strlen(op) + 1) * sizeof(char));
     strcpy(expression->op, op);
     expression->left = left;
     expression->right = right;
-    return new_node(N_EXPRESSION, expression);
+    expression->leaf = leaf;
+    expression->leaf_type = leaf_type;
+    return expression;
 }
 
-Node *new_return(Node *expression)
+Return *new_return(Expression *expression)
 {
     Return *return_ = malloc(sizeof(Return));
     return_->expression = expression;
-    return new_node(N_RETURN, return_);
+    return return_;
 }
 
-Node *new_number(int value)
+Number *new_number(int value)
 {
     Number *number = malloc(sizeof(Number));
     number->value = value;
-    return new_node(N_NUMBER, number);
+    return number;
 }
 
-Node *new_type_info(Type type)
+TypeInfo *new_type_info(Type type)
 {
     TypeInfo *type_info = malloc(sizeof(TypeInfo));
     type_info->type = type;
-    return new_node(N_TYPEINFO, type_info);
+    return type_info;
 }
 
-Node *new_name(char *value)
+Name *new_name(char *value)
 {
     Name *name = malloc(sizeof(Name));
     name->value = malloc((strlen(value) + 1) * sizeof(char));
     strcpy(name->value, value);
-    return new_node(N_NAME, name);
+    return name;
 }
 
-Node *new_function(char *name, Node *type_info, Node *parameters, Node *body)
+Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block *body)
 {
     Function *function = malloc(sizeof(Function));
     function->name = malloc((strlen(name) + 1) * sizeof(char));
     strcpy(function->name, name);
     function->type_info = type_info;
-    function->parameters = parameters;
+    function->params = params;
     function->body = body;
-    return new_node(N_FUNCTION, function);
+    return function;
 }
 
-Node *new_block(Node *statements)
+Block *new_block(Node *statements)
 {
     Block *block = malloc(sizeof(Block));
     block->statements = statements;
-    return new_node(N_BLOCK, block);
+    return block;
 }
 char *node_to_string(Node *node)
 {

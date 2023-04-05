@@ -21,8 +21,12 @@
 
 #include "assert.h"
 #include "token.h"
-#include "scope.h"
 #include "type.h"
+typedef struct TypeInfo
+{
+    Type type;
+    struct TypeInfo *next;
+} TypeInfo;
 
 typedef enum NodeType
 {
@@ -37,6 +41,14 @@ typedef enum NodeType
     N_BLOCK = 1 << 7,
     N_TYPEINFO = 1 << 8,
 } NodeType;
+
+typedef enum LeafType
+{
+    L_NA = 0,
+    L_NUMBER = 1 << 0,
+    L_NAME = 1 << 1,
+    L_CALL = 1 << 2,
+} LeafType;
 
 typedef struct Node
 {
@@ -58,29 +70,33 @@ typedef struct Name
 typedef struct Expression
 {
     char *op;
-    Node *left;
-    Node *right;
+    struct Expression *next;
+    struct Expression *left;
+    struct Expression *right;
+    LeafType leaf_type;
+    void *leaf;
 } Expression;
 
 typedef struct Variable
 {
     char *name;
-    Node *type_info;
-    Node *expression;
+    TypeInfo *type_info;
+    Expression *expression;
+    struct Variable *next;
 } Variable;
 
 typedef struct Assignment
 {
     char *name;
-    Node *type_info;
-    Node *expression;
+    TypeInfo *type_info;
+    Expression *expression;
 } Assignment;
 
 typedef struct Call
 {
     char *name;
-    Node *type_info;
-    Node *arguments;
+    TypeInfo *type_info;
+    Expression *expression;
 } Call;
 
 typedef struct Block
@@ -90,28 +106,28 @@ typedef struct Block
 
 typedef struct Return
 {
-    Node *expression;
+    Expression *expression;
 } Return;
 
 typedef struct Function
 {
     char *name;
-    Node *type_info;
-    Node *parameters;
-    Node *body;
+    TypeInfo *type_info;
+    Variable *params;
+    Block *body;
 } Function;
 
 Node *new_node(NodeType nodeType, void *data);
-Node *new_variable(char *name, Node *type_info, Node *expression);
-Node *new_assignment(Symbol *symbol, Node *expression);
-Node *new_call(Symbol *symbol, Node *arguments);
-Node *new_expression(char *op, Node *left, Node *right);
-Node *new_number(int value);
-Node *new_name(char *value);
-Node *new_function(char *name, Node *type_info, Node *parameters, Node *body);
-Node *new_block(Node *statements);
-Node *new_return(Node *expression);
-Node *new_type_info(Type type);
+Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
+Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
+Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
+Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf);
+Number *new_number(int value);
+Name *new_name(char *value);
+Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block *body);
+Block *new_block(Node *statements);
+Return *new_return(Expression *expression);
+TypeInfo *new_type_info(Type type);
 
 char *node_to_string(Node *node);
 void destroy_node(Node *node);
