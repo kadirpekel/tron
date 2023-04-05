@@ -80,11 +80,18 @@ Return *new_return(Expression *expression)
     return return_;
 }
 
-Number *new_number(int value)
+Integer *new_integer(int value)
 {
-    Number *number = malloc(sizeof(Number));
-    number->value = value;
-    return number;
+    Integer *integer = malloc(sizeof(Integer));
+    integer->value = value;
+    return integer;
+}
+
+Float *new_float(float value)
+{
+    Float *float_ = malloc(sizeof(Float));
+    float_->value = value;
+    return float_;
 }
 
 TypeInfo *new_type_info(Type type)

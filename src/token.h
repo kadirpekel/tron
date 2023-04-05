@@ -35,14 +35,14 @@ typedef enum
   T_ASSIGN = 1 << 10,
   T_SEMICOLON = 1 << 11,
   T_COLON = 1 << 12,
-  T_NUMBER = 1 << 13,
-  T_STRING = 1 << 14,
-  T_TYPE = 1 << 15,
-  T_COMMA = 1 << 16,
-  T_LCBRACET = 1 << 17,
-  T_RCBRACET = 1 << 18,
-  T_LBRACET = 1 << 19,
-  T_RBRACET = 1 << 20,
+  T_INTEGER = 1 << 13,
+  T_FLOAT = 1 << 14,
+  T_STRING = 1 << 15,
+  T_COMMA = 1 << 17,
+  T_LCBRACET = 1 << 18,
+  T_RCBRACET = 1 << 19,
+  T_LBRACET = 1 << 20,
+  T_RBRACET = 1 << 21,
 } TokenType;
 
 typedef struct Token

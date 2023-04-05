@@ -68,22 +68,6 @@ Token *lex(LexState *ls)
   {
     accept(ls, T_EOF);
   }
-  else if (isalpha(ls->c))
-  {
-    accept(ls, T_NAME);
-    while (isalpha(ls->c) || isdigit(ls->c) || ls->c == '_')
-    {
-      accept(ls, T_NAME);
-    };
-  }
-  else if (isdigit(ls->c))
-  {
-    accept(ls, T_NUMBER);
-    while (isdigit(ls->c) || ls->c == '.')
-    {
-      accept(ls, T_NUMBER);
-    };
-  }
   else if (isspace(ls->c))
   {
     accept(ls, T_SPACE);
@@ -164,6 +148,27 @@ Token *lex(LexState *ls)
   else if (ls->c == ',')
   {
     accept(ls, T_COMMA);
+  }
+  else if (isdigit(ls->c))
+  {
+    TokenType token_type = T_INTEGER;
+    accept(ls, token_type);
+    while (isdigit(ls->c) || (token_type == T_INTEGER && ls->c == '.'))
+    {
+      if (ls->c == '.')
+      {
+        token_type = T_FLOAT;
+      }
+      accept(ls, token_type);
+    };
+  }
+  else if (isalpha(ls->c))
+  {
+    accept(ls, T_NAME);
+    while (isalpha(ls->c) || isdigit(ls->c) || ls->c == '_')
+    {
+      accept(ls, T_NAME);
+    };
   }
   else
   {

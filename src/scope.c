@@ -30,6 +30,13 @@ Scope *new_scope(Scope *parent, Function *function)
     scope->parent = parent;
     scope->function = function;
     scope->symbol_table = malloc(SYMBOL_TABLE_SIZE * sizeof(Symbol));
+
+    if (parent == NULL)
+    {
+        insert_symbol(scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
+        insert_symbol(scope, "float", SYMBOL_TYPE, new_type_info(TYPE_INT));
+    }
+
     return scope;
 }
 

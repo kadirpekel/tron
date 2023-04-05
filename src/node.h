@@ -22,6 +22,7 @@
 #include "assert.h"
 #include "token.h"
 #include "type.h"
+
 typedef struct TypeInfo
 {
     Type type;
@@ -45,9 +46,10 @@ typedef enum NodeType
 typedef enum LeafType
 {
     L_NA = 0,
-    L_NUMBER = 1 << 0,
-    L_NAME = 1 << 1,
-    L_CALL = 1 << 2,
+    L_INTEGER = 1 << 0,
+    L_FLOAT = 1 << 1,
+    L_NAME = 1 << 2,
+    L_CALL = 1 << 3,
 } LeafType;
 
 typedef struct Node
@@ -57,10 +59,15 @@ typedef struct Node
     struct Node *next;
 } Node;
 
-typedef struct Number
+typedef struct Integer
 {
     int value;
-} Number;
+} Integer;
+
+typedef struct Float
+{
+    float value;
+} Float;
 
 typedef struct Name
 {
@@ -122,7 +129,8 @@ Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
 Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf);
-Number *new_number(int value);
+Integer *new_integer(int value);
+Float *new_float(float value);
 Name *new_name(char *value);
 Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block *body);
 Block *new_block(Node *statements);

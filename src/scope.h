@@ -26,7 +26,8 @@
 typedef enum SymbolType
 {
     SYMBOL_VARIABLE = 0,
-    SYMBOL_FUNCTION = 1
+    SYMBOL_FUNCTION = 1,
+    SYMBOL_TYPE = 2
 } SymbolType;
 
 typedef struct Symbol

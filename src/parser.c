@@ -83,18 +83,32 @@ Token *accept_keyword(ParserState *ps, char *keyword)
     return token;
 }
 
+Symbol *accept_type(ParserState *ps)
+{
+    if ((ps->token->token_type & T_NAME) != 0)
+    {
+        Symbol *symbol = lookup_symbol(ps->scope, ps->token->buffer);
+        if (symbol != NULL && symbol->symbol_type == SYMBOL_TYPE)
+        {
+
+            accept_token(ps, T_NAME);
+            return symbol;
+        }
+    }
+    return NULL;
+}
+
 TypeInfo *parse_type_info(ParserState *ps)
 {
     TypeInfo *type_info = NULL;
-    Token *type_token;
-    if ((type_token = accept_token(ps, T_TYPE)) != NULL)
+    Symbol *symbol;
+    if ((symbol = accept_type(ps)) != NULL)
     {
-        type_info = new_type_info(type_token->type);
-        destroy_token(type_token);
+        type_info = new_type_info(symbol->type_info->type);
     }
-
     return type_info;
 }
+
 TypeInfo *parse_type_infos(ParserState *ps)
 {
     TypeInfo *type_info = NULL;
@@ -227,11 +241,15 @@ Expression *parse_factor(ParserState *ps)
     else
     {
         Token *leaf_token;
-        if ((leaf_token = accept_token(ps, T_NUMBER | T_NAME)) != NULL)
+        if ((leaf_token = accept_token(ps, T_INTEGER | T_FLOAT | T_NAME)) != NULL)
         {
-            if (leaf_token->token_type == T_NUMBER)
+            if (leaf_token->token_type == T_INTEGER)
             {
-                expression = new_expression(leaf_token->buffer, NULL, NULL, L_NUMBER, new_number(atoi(leaf_token->buffer)));
+                expression = new_expression(leaf_token->buffer, NULL, NULL, L_INTEGER, new_integer(atoi(leaf_token->buffer)));
+            }
+            else if (leaf_token->token_type == T_FLOAT)
+            {
+                expression = new_expression(leaf_token->buffer, NULL, NULL, L_FLOAT, new_float(atof(leaf_token->buffer)));
             }
             else if (leaf_token->token_type == T_NAME)
             {
@@ -281,6 +299,7 @@ Variable *parse_param(ParserState *ps)
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
             type_info = parse_type_info(ps);
+
             if (type_info == NULL)
             {
                 parse_error(ps, "Type info is missing");
