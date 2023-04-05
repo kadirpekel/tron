@@ -24,10 +24,11 @@
 
 #include "scope.h"
 
-Scope *new_scope(Scope *parent)
+Scope *new_scope(Scope *parent, Function *function)
 {
     Scope *scope = malloc(sizeof(Scope));
     scope->parent = parent;
+    scope->function = function;
     scope->symbol_table = malloc(SYMBOL_TABLE_SIZE * sizeof(Symbol));
     return scope;
 }
@@ -46,13 +47,18 @@ unsigned int hash(const char *str)
 void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, TypeInfo *type_info)
 {
     unsigned int index = hash(name);
-
     Symbol *new_symbol = (Symbol *)malloc(sizeof(Symbol));
     new_symbol->name = strdup(name);
     new_symbol->symbol_type = symbol_type;
     new_symbol->type_info = type_info;
     new_symbol->next = scope->symbol_table[index];
     scope->symbol_table[index] = new_symbol;
+
+    printf("SYMBOL %s %d\n", name, symbol_type);
+    do
+    {
+        printf("\t TYPE %d\n", type_info->type);
+    } while ((type_info = type_info->next));
 }
 
 Symbol *lookup_symbol(Scope *scope, const char *name)

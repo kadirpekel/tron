@@ -38,7 +38,7 @@ void next_token(ParserState *ps)
 void init_parser(ParserState *ps, LexState *ls)
 {
     ps->ls = ls;
-    ps->scope = new_scope(NULL);
+    ps->scope = new_scope(NULL, NULL);
     next_token(ps);
 }
 
@@ -409,15 +409,24 @@ Function *parse_function(ParserState *ps)
             }
             destroy_token(colon_token);
         }
-        Scope *parent = ps->scope;
-        ps->scope = new_scope(parent);
-        Block *body = parse_block(ps);
-        ps->scope = parent;
+
         if (type_info == NULL)
         {
             type_info = new_type_info(TYPE_INFER);
         }
-        function = new_function(name_token->buffer, type_info, params, body);
+
+        function = new_function(name_token->buffer, type_info, params, NULL);
+
+        Scope *parent = ps->scope;
+        ps->scope = new_scope(parent, function);
+        function->body = parse_block(ps);
+        ps->scope = parent;
+
+        if (function->body == NULL)
+        {
+            parse_error(ps, "Function body is missing");
+        }
+
         insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info);
         destroy_token(name_token);
         destroy_token(def_token);

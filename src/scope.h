@@ -41,9 +41,10 @@ typedef struct Scope
 {
     struct Scope *parent;
     Symbol **symbol_table;
+    Function *function;
 } Scope;
 
-Scope *new_scope(Scope *parent);
+Scope *new_scope(Scope *parent, Function *function);
 void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, TypeInfo *type_info);
 Symbol *lookup_symbol(Scope *scope, const char *name);
 void destroy_scope(Scope *scope);
