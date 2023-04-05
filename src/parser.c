@@ -340,6 +340,7 @@ Variable *parse_variable(ParserState *ps)
         {
             parse_error(ps, "Variable not initialized");
         }
+        destroy_token(expect_token(ps, T_SEMICOLON));
     }
     return param;
 }
@@ -351,6 +352,7 @@ Return *parse_return(ParserState *ps)
     if ((return_token = accept_keyword(ps, "return")) != NULL)
     {
         return_ = new_return(parse_expressions(ps));
+        destroy_token(expect_token(ps, T_SEMICOLON));
         destroy_token(return_token);
     }
     return return_;
@@ -469,6 +471,7 @@ Node *parse_namebiguity(ParserState *ps)
                 {
                     parse_error(ps, "Variable assignment missing");
                 }
+                destroy_token(expect_token(ps, T_SEMICOLON));
                 node = new_node(N_ASSIGNMENT, assignment);
             }
             else if (symbol->symbol_type == SYMBOL_FUNCTION)
@@ -478,6 +481,7 @@ Node *parse_namebiguity(ParserState *ps)
                 {
                     parse_error(ps, "Function call missing");
                 }
+                destroy_token(expect_token(ps, T_SEMICOLON));
                 node = new_node(N_CALL, call);
             }
         }
@@ -505,7 +509,6 @@ Node *parse_statement(ParserState *ps)
         Return *return_ = parse_return(ps);
         if (return_ != NULL)
         {
-            destroy_token(expect_token(ps, T_SEMICOLON));
             return new_node(N_RETURN, return_);
         }
     }
@@ -513,14 +516,12 @@ Node *parse_statement(ParserState *ps)
     Variable *variable = parse_variable(ps);
     if (variable != NULL)
     {
-        destroy_token(expect_token(ps, T_SEMICOLON));
         return new_node(N_VARIABLE, variable);
     }
 
     Node *node = parse_namebiguity(ps);
     if (node != NULL)
     {
-        destroy_token(expect_token(ps, T_SEMICOLON));
         return node;
     }
 
