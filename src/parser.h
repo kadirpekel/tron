@@ -37,6 +37,6 @@ Expression *parse_term(ParserState *ps);
 Expression *parse_factor(ParserState *ps);
 Expression *parse_expression(ParserState *ps);
 Node *parse_statement(ParserState *ps);
-Node *parse(ParserState *ps);
+Node *parse(ParserState *ps, void (*visit_node)(Node *));
 
 #endif

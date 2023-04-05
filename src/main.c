@@ -22,6 +22,13 @@
 
 #include "parser.h"
 
+void visit_node(Node *node)
+{
+  char *nodeString = node_to_string(node);
+  printf("%s\n", nodeString);
+  free(nodeString);
+}
+
 int main(int argc, char **argv)
 {
   LexState ls;
@@ -30,14 +37,9 @@ int main(int argc, char **argv)
   ParserState ps;
   init_parser(&ps, &ls);
 
-  Node *node = parse(&ps);
+  Node *node = parse(&ps, visit_node);
 
-  while (node)
-  {
-    char *nodeString = node_to_string(node);
-    printf("%s\n", nodeString);
-    free(nodeString);
-    destroy_node(node);
-    node = parse(&ps);
-  }
+  // Do sth with entire ast here if you like
+
+  destroy_node(node);
 }

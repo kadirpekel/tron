@@ -534,7 +534,18 @@ Node *parse_statement(ParserState *ps)
     return NULL;
 }
 
-Node *parse(ParserState *ps)
+Node *parse(ParserState *ps, void (*visit_node)(Node *))
 {
-    return parse_statement(ps);
+
+    Node *node = parse_statement(ps);
+
+    Node *current = node;
+    while (current)
+    {
+        visit_node(current);
+        current->next = parse_statement(ps);
+        current = current->next;
+    }
+
+    return node;
 }
