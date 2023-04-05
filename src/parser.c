@@ -404,7 +404,7 @@ Function *parse_function(ParserState *ps)
         Token *colon_token = NULL;
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
-            type_info = parse_type_infos(ps);
+            type_info = parse_type_info(ps);
             if (type_info == NULL)
             {
                 parse_error(ps, "Type info is missing");
@@ -483,6 +483,10 @@ Node *parse_namebiguity(ParserState *ps)
                 }
                 destroy_token(expect_token(ps, T_SEMICOLON));
                 node = new_node(N_CALL, call);
+            }
+            else
+            {
+                parse_error(ps, "Invalid symbol");
             }
         }
         else
