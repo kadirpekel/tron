@@ -1,12 +1,12 @@
-# Tron
+# Tron Programming Language
 
-Tron is a statically-typed, strongly-typed programming language that compiles to machine code through LLVM. The language aims to provide a simple and expressive syntax, with support for modern programming paradigms.
+Tron is a statically-typed, strongly-typed programming language designed for high-performance data-intensive applications. It compiles to machine code through LLVM and aims to offer a simple, expressive syntax that supports modern programming paradigms.
 
-The ultimate goal of Tron is to become a data-native programming language, seamlessly integrating support for tensors and tensor operations at the language level. This design philosophy prioritizes maximum performance and efficiency for data-intensive applications.
+The long-term vision for Tron is to become a data-native programming language, incorporating seamless integration of tensors and tensor operations at the language level. This design philosophy emphasizes optimal performance and efficiency for data-heavy applications.
 
-## First phase goals
+## First Phase Goals
 
-The first phase of development focuses on a calculator with support for integers and floating-point numbers while featuring a significant set of language features.
+During the first phase of development, the primary focus is to create a rudimentary calculator that supports integers and floating-point numbers, while also laying the groundwork for the language's overall design.
 
 ## Preview
 
@@ -24,3 +24,17 @@ def myfunc(a: int, b: float = 0.5): float {
 var baz = myfunc(3) * (foo + bar);
 
 ```
+
+## First Phase Progress
+
+- Initial lexer: Tokenizing a sufficient number of tokens to support the first phase.
+- Initial parser: Parsing the bare minimum statements required for the first phase.
+- Scope handling: Maintaining a scope-based symbol table to track functions, variables, and types.
+
+## First Phase TODOs:
+
+- Expression auto type resolution over type inference.
+- Conditional operators.
+- Parse time semantic checks.
+- Consider a generic backend to support both llvm and wasm
+- Initial LLVM emit and compilation to a final binary object, ready for linking with external executables.
