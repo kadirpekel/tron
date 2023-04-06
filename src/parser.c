@@ -435,7 +435,7 @@ Return *parse_return(ParserState *ps)
 
 Block *parse_block(ParserState *ps, Function *function)
 {
-    destroy_token(expect_token(ps, T_LCBRACET));
+    destroy_token(expect_token(ps, T_LBRACE));
 
     Scope *parent = ps->scope;
 
@@ -459,7 +459,7 @@ Block *parse_block(ParserState *ps, Function *function)
 
     ps->scope = parent;
 
-    destroy_token(expect_token(ps, T_RCBRACET));
+    destroy_token(expect_token(ps, T_RBRACE));
     return block;
 }
 

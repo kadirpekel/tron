@@ -23,7 +23,14 @@
 
 #include "lexer.h"
 
-// Lexical Analyzer
+void lexer_error(LexState *ls, char *msg)
+{
+  fprintf(stderr, "Lexer Error <%d:%d> %s\n",
+          ls->line,
+          ls->col,
+          msg);
+  exit(EXIT_FAILURE);
+}
 
 void next(LexState *ls)
 {
@@ -56,10 +63,60 @@ void init_lex_state(LexState *ls, FILE *file)
   ls->length = 0;
   ls->col = 0;
   ls->line = 0;
-  ls->token_type = T_NOMATCH;
+  ls->token_type = T_EOF;
   ls->file = file;
   next(ls);
 }
+
+/*--------------------------------
+| Operator | Token Name           |
+|----------|----------------------|
+| (        | T_LPAREN             |
+| )        | T_RPAREN             |
+| [        | T_LBRACKET           |
+| ]        | T_RBRACKET           |
+| {        | T_LBRACE             |
+| }        | T_RBRACE             |
+| .        | T_DOT                |
+| ,        | T_COMMA              |
+| :        | T_COLON              |
+| ;        | T_SEMICOLON          |
+| ...      | T_ELLIPSIS           |
+| +        | T_ADD                |
+| -        | T_SUB                |
+| *        | T_MUL                |
+| /        | T_DIV                |
+| %        | T_MOD                |
+| &        | T_BITWISE_AND        |
+| |        | T_BITWISE_OR         |
+| ^        | T_BITWISE_XOR        |
+| &^       | T_BIT_CLEAR          |
+| <<       | T_LSHIFT             |
+| >>       | T_RSHIFT             |
+| ==       | T_EQ                 |
+| !=       | T_NEQ                |
+| <        | T_LT                 |
+| <=       | T_LTE                |
+| >        | T_GT                 |
+| >=       | T_GTE                |
+| &&       | T_LOGICAL_AND        |
+| ||       | T_LOGICAL_OR         |
+| <-       | T_CHAN_RECEIVE       |
+| !        | T_NOT                |
+| =        | T_ASSIGN             |
+| :=       | T_SHORT_ASSIGN       |
+| +=       | T_ADD_ASSIGN         |
+| -=       | T_SUB_ASSIGN         |
+| *=       | T_MUL_ASSIGN         |
+| /=       | T_DIV_ASSIGN         |
+| %=       | T_MOD_ASSIGN         |
+| &=       | T_AND_ASSIGN         |
+| |=       | T_OR_ASSIGN          |
+| ^=       | T_XOR_ASSIGN         |
+| <<=      | T_LSHIFT_ASSIGN      |
+| >>=      | T_RSHIFT_ASSIGN      |
+| &^=      | T_BIT_CLEAR_ASSIGN   |
+----------------------------------*/
 
 Token *lex(LexState *ls)
 {
@@ -67,6 +124,258 @@ Token *lex(LexState *ls)
   if (ls->c == EOF)
   {
     accept(ls, T_EOF);
+  }
+  else if (ls->c == '(')
+  {
+    accept(ls, T_LPAREN);
+  }
+  else if (ls->c == ')')
+  {
+    accept(ls, T_RPAREN);
+  }
+  else if (ls->c == '[')
+  {
+    accept(ls, T_LBRACKET);
+  }
+  else if (ls->c == ']')
+  {
+    accept(ls, T_RBRACKET);
+  }
+  else if (ls->c == '{')
+  {
+    accept(ls, T_LBRACE);
+  }
+  else if (ls->c == '}')
+  {
+    accept(ls, T_RBRACE);
+  }
+  else if (ls->c == '.')
+  {
+    accept(ls, T_DOT);
+  }
+  else if (ls->c == ',')
+  {
+    accept(ls, T_COMMA);
+  }
+  else if (ls->c == ':')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_SHORT_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_COLON);
+    }
+  }
+  else if (ls->c == ';')
+  {
+    accept(ls, T_SEMICOLON);
+  }
+  else if (ls->c == '+')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_ADD_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_ADD);
+    }
+  }
+  else if (ls->c == '-')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_SUB_ASSIGN);
+    }
+    else if (ls->c == '>')
+    {
+      accept(ls, T_ARROW);
+    }
+    else
+    {
+      accept(ls, T_SUB);
+    }
+  }
+  else if (ls->c == '*')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_MUL_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_MUL);
+    }
+  }
+  else if (ls->c == '/')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_DIV_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_DIV);
+    }
+  }
+  else if (ls->c == '%')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_MOD_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_MOD);
+    }
+  }
+  else if (ls->c == '&')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_AND_ASSIGN);
+    }
+    else if (ls->c == '^')
+    {
+      next(ls);
+      if (ls->c == '=')
+      {
+        accept(ls, T_BIT_CLEAR_ASSIGN);
+      }
+      else
+      {
+        accept(ls, T_BIT_CLEAR);
+      }
+    }
+    else if (ls->c == '&')
+    {
+      accept(ls, T_LOGICAL_AND);
+    }
+    else
+    {
+      accept(ls, T_BITWISE_AND);
+    }
+  }
+  else if (ls->c == '|')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_OR_ASSIGN);
+    }
+    else if (ls->c == '|')
+    {
+      accept(ls, T_LOGICAL_OR);
+    }
+    else
+    {
+      accept(ls, T_BITWISE_OR);
+    }
+  }
+  else if (ls->c == '^')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_XOR_ASSIGN);
+    }
+    else
+    {
+      accept(ls, T_BITWISE_XOR);
+    }
+  }
+  else if (ls->c == '<')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_LTE);
+    }
+    else if (ls->c == '<')
+    {
+      next(ls);
+      if (ls->c == '=')
+      {
+        accept(ls, T_LSHIFT_ASSIGN);
+      }
+      else
+      {
+        accept(ls, T_LSHIFT);
+      }
+    }
+    else if (ls->c == '-')
+    {
+      accept(ls, T_CHAN_RECEIVE);
+    }
+    else
+    {
+      accept(ls, T_LT);
+    }
+  }
+  else if (ls->c == '>')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_GTE);
+    }
+    else if (ls->c == '>')
+    {
+      next(ls);
+      if (ls->c == '=')
+      {
+        accept(ls, T_RSHIFT_ASSIGN);
+      }
+      else
+      {
+        accept(ls, T_RSHIFT);
+      }
+    }
+    else
+    {
+      accept(ls, T_GT);
+    }
+  }
+  else if (ls->c == '=')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_EQ);
+    }
+    else
+    {
+      accept(ls, T_ASSIGN);
+    }
+  }
+  else if (ls->c == '!')
+  {
+    next(ls);
+    if (ls->c == '=')
+    {
+      accept(ls, T_NEQ);
+    }
+    else
+    {
+      accept(ls, T_NOT);
+    }
+  }
+  else if (ls->c == '#')
+  {
+    accept(ls, T_COMMENT);
+    while (ls->c != '\n')
+    {
+      accept(ls, T_COMMENT);
+    }
   }
   else if (isspace(ls->c))
   {
@@ -84,70 +393,6 @@ Token *lex(LexState *ls)
       accept(ls, T_STRING);
     }
     next(ls);
-  }
-  else if (ls->c == '(')
-  {
-    accept(ls, T_LPAREN);
-  }
-  else if (ls->c == ')')
-  {
-    accept(ls, T_RPAREN);
-  }
-  else if (ls->c == '{')
-  {
-    accept(ls, T_LCBRACET);
-  }
-  else if (ls->c == '}')
-  {
-    accept(ls, T_RCBRACET);
-  }
-  else if (ls->c == '[')
-  {
-    accept(ls, T_LBRACET);
-  }
-  else if (ls->c == ']')
-  {
-    accept(ls, T_RBRACET);
-  }
-  else if (ls->c == '#')
-  {
-    accept(ls, T_COMMENT);
-    while (ls->c != '\n')
-    {
-      accept(ls, T_COMMENT);
-    }
-  }
-  else if (ls->c == '+')
-  {
-    accept(ls, T_ADD);
-  }
-  else if (ls->c == '-')
-  {
-    accept(ls, T_SUB);
-  }
-  else if (ls->c == '*')
-  {
-    accept(ls, T_MUL);
-  }
-  else if (ls->c == '/')
-  {
-    accept(ls, T_DIV);
-  }
-  else if (ls->c == '=')
-  {
-    accept(ls, T_ASSIGN);
-  }
-  else if (ls->c == ';')
-  {
-    accept(ls, T_SEMICOLON);
-  }
-  else if (ls->c == ':')
-  {
-    accept(ls, T_COLON);
-  }
-  else if (ls->c == ',')
-  {
-    accept(ls, T_COMMA);
   }
   else if (isdigit(ls->c))
   {
@@ -172,7 +417,7 @@ Token *lex(LexState *ls)
   }
   else
   {
-    accept(ls, T_NOMATCH);
+    lexer_error(ls, "Unexpected token");
   }
 
   return reset(ls);
