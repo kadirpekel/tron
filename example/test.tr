@@ -1,18 +1,3 @@
-
-func foo (c) {
-    while (c) {
-        c = c - 1;
-    }
-    return c;
-}
-
-var a = 10;
-var b = 20;
-
-if (a) {
-    print(foo(a));
-} else if (b) {
-    print(foo(b));
-} else {
-    print(30);
+func foo(a=4.3): float {
+    return 1;
 }

@@ -182,10 +182,22 @@ Expression *parse_expression(ParserState *ps)
 {
     Expression *left = parse_term(ps);
     Token *opToken;
-    if ((opToken = accept_token(ps, T_ADD | T_SUB)) != NULL)
+    if (left != NULL && (opToken = accept_token(ps, T_ADD | T_SUB)) != NULL)
     {
         Expression *right = parse_expression(ps);
-        Expression *expresion = new_expression(opToken->buffer, left, right, L_NA, NULL);
+
+        if (right->type_info->type != left->type_info->type)
+        {
+            parse_error(ps, "Types can not be mixed");
+        }
+
+        Expression *expresion = new_expression(
+            opToken->buffer,
+            left,
+            right,
+            L_NA,
+            NULL,
+            NULL);
         destroy_token(opToken);
         return expresion;
     }
@@ -220,9 +232,22 @@ Expression *parse_term(ParserState *ps)
 {
     Expression *left = parse_factor(ps);
     Token *opToken;
-    if ((opToken = accept_token(ps, T_MUL | T_DIV)) != NULL)
+    if (left != NULL && (opToken = accept_token(ps, T_MUL | T_DIV)) != NULL)
     {
-        Expression *expression = new_expression(opToken->buffer, left, parse_term(ps), L_NA, NULL);
+        Expression *right = parse_term(ps);
+
+        if (right->type_info->type != left->type_info->type)
+        {
+            parse_error(ps, "Types can not be mixed");
+        }
+
+        Expression *expression = new_expression(
+            opToken->buffer,
+            left,
+            right,
+            L_NA,
+            NULL,
+            NULL);
         destroy_token(opToken);
         return expression;
     }
@@ -246,11 +271,23 @@ Expression *parse_factor(ParserState *ps)
         {
             if (leaf_token->token_type == T_INTEGER)
             {
-                expression = new_expression(leaf_token->buffer, NULL, NULL, L_INTEGER, new_integer(atoi(leaf_token->buffer)));
+                expression = new_expression(
+                    leaf_token->buffer,
+                    NULL,
+                    NULL,
+                    L_INTEGER,
+                    new_integer(atoi(leaf_token->buffer)),
+                    new_type_info(TYPE_INT));
             }
             else if (leaf_token->token_type == T_FLOAT)
             {
-                expression = new_expression(leaf_token->buffer, NULL, NULL, L_FLOAT, new_float(atof(leaf_token->buffer)));
+                expression = new_expression(
+                    leaf_token->buffer,
+                    NULL,
+                    NULL,
+                    L_FLOAT,
+                    new_float(atof(leaf_token->buffer)),
+                    new_type_info(TYPE_FLOAT));
             }
             else if (leaf_token->token_type == T_NAME)
             {
@@ -264,11 +301,23 @@ Expression *parse_factor(ParserState *ps)
                         {
                             parse_error(ps, "Function call missing");
                         }
-                        expression = new_expression(leaf_token->buffer, NULL, NULL, L_CALL, call);
+                        expression = new_expression(
+                            leaf_token->buffer,
+                            NULL,
+                            NULL,
+                            L_CALL,
+                            call,
+                            symbol->type_info);
                     }
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
-                        expression = new_expression(leaf_token->buffer, NULL, NULL, L_NAME, new_name(leaf_token->buffer));
+                        expression = new_expression(
+                            leaf_token->buffer,
+                            NULL,
+                            NULL,
+                            L_NAME,
+                            new_name(leaf_token->buffer),
+                            symbol->type_info);
                     }
                     else
                     {
@@ -323,6 +372,11 @@ Variable *parse_param(ParserState *ps)
             destroy_token(assign_token);
         }
 
+        if (type_info->type == TYPE_INFER && expression == NULL)
+        {
+            parse_error(ps, "Variable needs assignment");
+        }
+
         param = new_variable(name_token->buffer, type_info, expression);
         insert_symbol(ps->scope, param->name, SYMBOL_VARIABLE, param->type_info);
         destroy_token(name_token);
@@ -353,6 +407,26 @@ Return *parse_return(ParserState *ps)
     if ((return_token = accept_keyword(ps, RETURN)) != NULL)
     {
         return_ = new_return(parse_expressions(ps));
+
+        if (ps->scope->function->type_info->type == TYPE_INFER)
+        {
+            if (return_->expression->type_info->type == TYPE_INFER)
+            {
+                parse_error(ps, "Can not infer the return type");
+            }
+            else
+            {
+                ps->scope->function->type_info = return_->expression->type_info;
+            }
+        }
+        else
+        {
+            if (return_->expression->type_info->type != ps->scope->function->type_info->type)
+            {
+                parse_error(ps, "Invalid or inconsistent return type");
+            }
+        }
+
         destroy_token(expect_token(ps, T_SEMICOLON));
         destroy_token(return_token);
     }
@@ -421,6 +495,7 @@ Function *parse_function(ParserState *ps)
         if ((colon_token = accept_token(ps, T_COLON)) != NULL)
         {
             type_info = parse_type_info(ps);
+
             if (type_info == NULL)
             {
                 parse_error(ps, "Type info is missing");

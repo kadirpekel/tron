@@ -87,6 +87,7 @@ typedef struct Expression
     struct Expression *next;
     struct Expression *left;
     struct Expression *right;
+    TypeInfo *type_info;
     LeafType leaf_type;
     void *leaf;
 } Expression;
@@ -143,7 +144,7 @@ Node *new_node(NodeType nodeType, void *data);
 Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
-Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf);
+Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf, TypeInfo *type_info);
 Integer *new_integer(int value);
 Float *new_float(float value);
 Name *new_name(char *value);

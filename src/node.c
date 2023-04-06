@@ -35,9 +35,17 @@ Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression)
 {
     Variable *variable = malloc(sizeof(Variable));
     variable->name = malloc((strlen(name) + 1) * sizeof(char));
-    variable->type_info = type_info;
     strcpy(variable->name, name);
     variable->expression = expression;
+
+    if (type_info->type == TYPE_INFER)
+    {
+        variable->type_info = expression->type_info;
+    }
+    else
+    {
+        variable->type_info = type_info;
+    }
     return variable;
 }
 
@@ -61,7 +69,7 @@ Call *new_call(char *name, TypeInfo *type_info, Expression *expression)
     return call;
 }
 
-Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf)
+Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf, TypeInfo *type_info)
 {
     Expression *expression = malloc(sizeof(Expression));
     expression->op = malloc((strlen(op) + 1) * sizeof(char));
@@ -70,6 +78,7 @@ Expression *new_expression(char *op, Expression *left, Expression *right, LeafTy
     expression->right = right;
     expression->leaf = leaf;
     expression->leaf_type = leaf_type;
+    expression->type_info = type_info;
     return expression;
 }
 
