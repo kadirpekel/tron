@@ -10,13 +10,13 @@ During the first phase of development, the primary focus is to create a rudiment
 
 ## Preview
 
-```typescript
+```go
 
 var foo = 3;
 
 var bar: float = 4.42;
 
-def myfunc(a: int, b: float = 0.5): float {
+func myfunc(a: int, b: float = 0.5): float {
     var c = a * b;
     return c;
 }

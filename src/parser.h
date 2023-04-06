@@ -24,6 +24,12 @@
 #include "node.h"
 #include "scope.h"
 
+#define IF "if"
+#define WHILE "while"
+#define FUNCTION "func"
+#define VAR "var"
+#define RETURN "return"
+
 typedef struct ParserState
 {
     LexState *ls;

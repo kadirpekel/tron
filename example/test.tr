@@ -1,4 +1,4 @@
-def foo (c) {
+func foo (c) {
     while (c) {
         c = c - 1;
     }

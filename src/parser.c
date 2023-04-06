@@ -334,7 +334,7 @@ Variable *parse_variable(ParserState *ps)
 {
     Variable *param = NULL;
     Token *var_token;
-    if ((var_token = accept_keyword(ps, "var")) != NULL)
+    if ((var_token = accept_keyword(ps, VAR)) != NULL)
     {
         param = parse_param(ps);
         if (param == NULL)
@@ -350,7 +350,7 @@ Return *parse_return(ParserState *ps)
 {
     Return *return_ = NULL;
     Token *return_token;
-    if ((return_token = accept_keyword(ps, "return")) != NULL)
+    if ((return_token = accept_keyword(ps, RETURN)) != NULL)
     {
         return_ = new_return(parse_expressions(ps));
         destroy_token(expect_token(ps, T_SEMICOLON));
@@ -393,7 +393,7 @@ Function *parse_function(ParserState *ps)
     Function *function = NULL;
     Token *def_token;
 
-    if ((def_token = accept_keyword(ps, "def")) != NULL)
+    if ((def_token = accept_keyword(ps, FUNCTION)) != NULL)
     {
         Token *name_token = expect_token(ps, T_NAME);
 
@@ -442,13 +442,13 @@ If *parse_if(ParserState *ps)
     If *if_ = NULL;
     Token *if_token;
 
-    if ((if_token = accept_keyword(ps, "if")) != NULL)
+    if ((if_token = accept_keyword(ps, IF)) != NULL)
     {
         destroy_token(expect_token(ps, T_LPAREN));
         Expression *condition = parse_expression(ps);
         if (condition == NULL)
         {
-            parse_error(ps, "If condition is missing");
+            parse_error(ps, "Condition expression is missing");
         }
         destroy_token(expect_token(ps, T_RPAREN));
 
@@ -460,7 +460,7 @@ If *parse_if(ParserState *ps)
         ps->scope = parent;
         if (if_->body == NULL)
         {
-            parse_error(ps, "If body is missing");
+            parse_error(ps, "Condition body is missing");
         }
         destroy_token(if_token);
     }
@@ -472,13 +472,13 @@ While *parse_while(ParserState *ps)
     While *while_ = NULL;
     Token *while_token;
 
-    if ((while_token = accept_keyword(ps, "while")) != NULL)
+    if ((while_token = accept_keyword(ps, WHILE)) != NULL)
     {
         destroy_token(expect_token(ps, T_LPAREN));
         Expression *condition = parse_expression(ps);
         if (condition == NULL)
         {
-            parse_error(ps, "While condition is missing");
+            parse_error(ps, "Condition is missing");
         }
         destroy_token(expect_token(ps, T_RPAREN));
 
@@ -490,7 +490,7 @@ While *parse_while(ParserState *ps)
         ps->scope = parent;
         if (while_->body == NULL)
         {
-            parse_error(ps, "While body is missing");
+            parse_error(ps, "Body is missing");
         }
         destroy_token(while_token);
     }
