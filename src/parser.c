@@ -231,7 +231,7 @@ Expression *parse_term(ParserState *ps)
 {
     Expression *left = parse_factor(ps);
     Token *opToken;
-    if (left != NULL && (opToken = accept_token(ps, T_MUL | T_DIV)) != NULL)
+    if (left != NULL && (opToken = accept_token(ps, T_MUL | T_DIV | T_MOD)) != NULL)
     {
         Expression *right = parse_term(ps);
 
@@ -442,14 +442,7 @@ Block *parse_block(ParserState *ps, Function *function)
         ps->scope = new_scope(parent, function);
     }
 
-    Node *statement = parse(ps, NULL);
-    Node *current = statement;
-    while (current != NULL)
-    {
-        current->next = parse(ps, NULL);
-        current = current->next;
-    }
-    Block *block = new_block(statement);
+    Block *block = new_block(parse(ps, NULL));
 
     ps->scope = parent;
 
