@@ -195,7 +195,6 @@ Expression *parse_expression(ParserState *ps)
             opToken->buffer,
             left,
             right,
-            L_NA,
             NULL,
             new_type_info(right->type_info->type));
         destroy_token(opToken);
@@ -245,7 +244,6 @@ Expression *parse_term(ParserState *ps)
             opToken->buffer,
             left,
             right,
-            L_NA,
             NULL,
             new_type_info(right->type_info->type));
         destroy_token(opToken);
@@ -275,8 +273,7 @@ Expression *parse_factor(ParserState *ps)
                     leaf_token->buffer,
                     NULL,
                     NULL,
-                    L_INTEGER,
-                    new_integer(atoi(leaf_token->buffer)),
+                    new_node(N_INTEGER, new_integer(atoi(leaf_token->buffer))),
                     new_type_info(TYPE_INT));
             }
             else if (leaf_token->token_type == T_FLOAT)
@@ -285,8 +282,7 @@ Expression *parse_factor(ParserState *ps)
                     leaf_token->buffer,
                     NULL,
                     NULL,
-                    L_FLOAT,
-                    new_float(atof(leaf_token->buffer)),
+                    new_node(N_FLOAT, new_float(atof(leaf_token->buffer))),
                     new_type_info(TYPE_FLOAT));
             }
             else if (leaf_token->token_type == T_NAME)
@@ -305,8 +301,7 @@ Expression *parse_factor(ParserState *ps)
                             leaf_token->buffer,
                             NULL,
                             NULL,
-                            L_CALL,
-                            call,
+                            new_node(N_CALL, call),
                             symbol->type_info);
                     }
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
@@ -315,8 +310,7 @@ Expression *parse_factor(ParserState *ps)
                             leaf_token->buffer,
                             NULL,
                             NULL,
-                            L_NAME,
-                            new_name(leaf_token->buffer),
+                            new_node(N_NAME, new_name(leaf_token->buffer)),
                             symbol->type_info);
                     }
                     else

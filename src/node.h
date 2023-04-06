@@ -31,7 +31,7 @@ typedef struct TypeInfo
 
 typedef enum NodeType
 {
-    N_NUMBER = 0,
+    N_INTEGER = 0,
     N_NAME = 1 << 0,
     N_EXPRESSION = 1 << 1,
     N_VARIABLE = 1 << 2,
@@ -43,16 +43,8 @@ typedef enum NodeType
     N_TYPEINFO = 1 << 8,
     N_IF = 1 << 9,
     N_WHILE = 1 << 10,
+    N_FLOAT = 1 << 11,
 } NodeType;
-
-typedef enum LeafType
-{
-    L_NA = 0,
-    L_INTEGER = 1 << 0,
-    L_FLOAT = 1 << 1,
-    L_NAME = 1 << 2,
-    L_CALL = 1 << 3,
-} LeafType;
 
 typedef struct Node
 {
@@ -88,8 +80,7 @@ typedef struct Expression
     struct Expression *left;
     struct Expression *right;
     TypeInfo *type_info;
-    LeafType leaf_type;
-    void *leaf;
+    Node *node;
 } Expression;
 
 typedef struct If
@@ -144,7 +135,7 @@ Node *new_node(NodeType nodeType, void *data);
 Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
-Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf, TypeInfo *type_info);
+Expression *new_expression(char *op, Expression *left, Expression *right, Node *node, TypeInfo *type_info);
 Integer *new_integer(int value);
 Float *new_float(float value);
 Name *new_name(char *value);

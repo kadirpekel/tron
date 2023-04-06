@@ -69,15 +69,14 @@ Call *new_call(char *name, TypeInfo *type_info, Expression *expression)
     return call;
 }
 
-Expression *new_expression(char *op, Expression *left, Expression *right, LeafType leaf_type, void *leaf, TypeInfo *type_info)
+Expression *new_expression(char *op, Expression *left, Expression *right, Node *node, TypeInfo *type_info)
 {
     Expression *expression = malloc(sizeof(Expression));
     expression->op = malloc((strlen(op) + 1) * sizeof(char));
     strcpy(expression->op, op);
     expression->left = left;
     expression->right = right;
-    expression->leaf = leaf;
-    expression->leaf_type = leaf_type;
+    expression->node = node;
     expression->type_info = type_info;
     return expression;
 }
@@ -162,8 +161,10 @@ char *node_to_string(Node *node)
     case N_EXPRESSION:
         nodeTypeName = "EXPRESSION";
         break;
-    case N_NUMBER:
-        nodeTypeName = "NUMBER";
+    case N_INTEGER:
+        nodeTypeName = "INTEGER";
+    case N_FLOAT:
+        nodeTypeName = "FLOAT";
         break;
     case N_ASSIGNMENT:
         nodeTypeName = "ASSIGNMENT";
