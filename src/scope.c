@@ -39,6 +39,8 @@ Scope *new_scope(Scope *parent, Function *function)
         insert_symbol(scope, "float", SYMBOL_TYPE, new_type_info(TYPE_FLOAT));
         // Functions
         insert_symbol(scope, "print", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
+        insert_symbol(scope, "as_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
+        insert_symbol(scope, "as_float", SYMBOL_FUNCTION, new_type_info(TYPE_FLOAT));
     }
 
     return scope;

@@ -1,3 +1,10 @@
-func foo(a=4.3): float {
-    return 1;
+var foo = 3;
+
+var bar: float = 4.42;
+
+func myfunc(a: int, b: float): float {
+    var c = as_float(a) * b;
+    return c;
 }
+
+var baz = myfunc(3) * (as_float(foo) + bar);

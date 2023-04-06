@@ -197,7 +197,7 @@ Expression *parse_expression(ParserState *ps)
             right,
             L_NA,
             NULL,
-            NULL);
+            new_type_info(right->type_info->type));
         destroy_token(opToken);
         return expresion;
     }
@@ -247,7 +247,7 @@ Expression *parse_term(ParserState *ps)
             right,
             L_NA,
             NULL,
-            NULL);
+            new_type_info(right->type_info->type));
         destroy_token(opToken);
         return expression;
     }
