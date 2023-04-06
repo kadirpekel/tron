@@ -38,3 +38,4 @@ var baz = myfunc(3) * (foo + bar);
 - Parse time semantic checks.
 - Consider a generic backend to support both llvm and wasm
 - Initial LLVM emit and compilation to a final binary object, ready for linking with external executables.
+- Perform a memory review and cleanup to ensure proper handling of unfreed allocations in the source code.
