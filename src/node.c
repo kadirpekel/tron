@@ -120,6 +120,22 @@ Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block 
     return function;
 }
 
+If *new_if(Expression *condition, Block *body)
+{
+    If *if_ = malloc(sizeof(If));
+    if_->condition = condition;
+    if_->body = body;
+    return if_;
+}
+
+While *new_while(Expression *condition, Block *body)
+{
+    While *while_ = malloc(sizeof(While));
+    while_->condition = condition;
+    while_->body = body;
+    return while_;
+}
+
 Block *new_block(Node *statements)
 {
     Block *block = malloc(sizeof(Block));
@@ -154,6 +170,12 @@ char *node_to_string(Node *node)
         break;
     case N_TYPEINFO:
         nodeTypeName = "TYPEINFO";
+        break;
+    case N_IF:
+        nodeTypeName = "IF";
+        break;
+    case N_WHILE:
+        nodeTypeName = "WHILE";
         break;
     default:
         fprintf(stderr, "Invalid node type");

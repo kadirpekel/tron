@@ -33,14 +33,18 @@ Scope *new_scope(Scope *parent, Function *function)
 
     if (parent == NULL)
     {
+        // Global builtins
+        // Types
         insert_symbol(scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
         insert_symbol(scope, "float", SYMBOL_TYPE, new_type_info(TYPE_INT));
+        // Functions
+        insert_symbol(scope, "print", SYMBOL_FUNCTION, new_type_info(TYPE_INFER));
     }
 
     return scope;
 }
 
-unsigned int hash(const char *str)
+unsigned int hash(char *str)
 {
     unsigned int hash = 5381;
     int c;
@@ -51,7 +55,7 @@ unsigned int hash(const char *str)
     return hash % SYMBOL_TABLE_SIZE;
 }
 
-void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, TypeInfo *type_info)
+void insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
 {
     unsigned int index = hash(name);
     Symbol *new_symbol = (Symbol *)malloc(sizeof(Symbol));
@@ -68,7 +72,7 @@ void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, TypeI
     } while ((type_info = type_info->next));
 }
 
-Symbol *lookup_symbol(Scope *scope, const char *name)
+Symbol *lookup_symbol(Scope *scope, char *name)
 {
     if (scope == NULL)
     {

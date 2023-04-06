@@ -46,8 +46,8 @@ typedef struct Scope
 } Scope;
 
 Scope *new_scope(Scope *parent, Function *function);
-void insert_symbol(Scope *scope, const char *name, SymbolType symbol_type, TypeInfo *type_info);
-Symbol *lookup_symbol(Scope *scope, const char *name);
+void insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
+Symbol *lookup_symbol(Scope *scope, char *name);
 void destroy_scope(Scope *scope);
 
 #endif

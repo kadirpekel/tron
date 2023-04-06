@@ -76,6 +76,7 @@ Token *expect_token(ParserState *ps, TokenType tokenTypes)
 Token *accept_keyword(ParserState *ps, char *keyword)
 {
     Token *token = NULL;
+
     if ((ps->token->token_type & T_NAME) != 0 && strcmp(ps->token->buffer, keyword) == 0)
     {
         token = accept_token(ps, T_NAME);
@@ -436,6 +437,66 @@ Function *parse_function(ParserState *ps)
     return function;
 }
 
+If *parse_if(ParserState *ps)
+{
+    If *if_ = NULL;
+    Token *if_token;
+
+    if ((if_token = accept_keyword(ps, "if")) != NULL)
+    {
+        destroy_token(expect_token(ps, T_LPAREN));
+        Expression *condition = parse_expression(ps);
+        if (condition == NULL)
+        {
+            parse_error(ps, "If condition is missing");
+        }
+        destroy_token(expect_token(ps, T_RPAREN));
+
+        if_ = new_if(condition, NULL);
+
+        Scope *parent = ps->scope;
+        ps->scope = new_scope(parent, parent->function);
+        if_->body = parse_block(ps);
+        ps->scope = parent;
+        if (if_->body == NULL)
+        {
+            parse_error(ps, "If body is missing");
+        }
+        destroy_token(if_token);
+    }
+    return if_;
+}
+
+While *parse_while(ParserState *ps)
+{
+    While *while_ = NULL;
+    Token *while_token;
+
+    if ((while_token = accept_keyword(ps, "while")) != NULL)
+    {
+        destroy_token(expect_token(ps, T_LPAREN));
+        Expression *condition = parse_expression(ps);
+        if (condition == NULL)
+        {
+            parse_error(ps, "While condition is missing");
+        }
+        destroy_token(expect_token(ps, T_RPAREN));
+
+        while_ = new_while(condition, NULL);
+
+        Scope *parent = ps->scope;
+        ps->scope = new_scope(parent, parent->function);
+        while_->body = parse_block(ps);
+        ps->scope = parent;
+        if (while_->body == NULL)
+        {
+            parse_error(ps, "While body is missing");
+        }
+        destroy_token(while_token);
+    }
+    return while_;
+}
+
 Assignment *parse_assignment(ParserState *ps, Symbol *symbol)
 {
     Assignment *assignment = NULL;
@@ -501,6 +562,18 @@ Node *parse_namebiguity(ParserState *ps)
 
 Node *parse_statement(ParserState *ps)
 {
+
+    If *if_ = parse_if(ps);
+    if (if_ != NULL)
+    {
+        return new_node(N_IF, if_);
+    }
+
+    While *while_ = parse_while(ps);
+    if (while_ != NULL)
+    {
+        return new_node(N_IF, while_);
+    }
 
     Function *function = parse_function(ps);
     if (function != NULL)

@@ -41,6 +41,8 @@ typedef enum NodeType
     N_RETURN = 1 << 6,
     N_BLOCK = 1 << 7,
     N_TYPEINFO = 1 << 8,
+    N_IF = 1 << 9,
+    N_WHILE = 1 << 10,
 } NodeType;
 
 typedef enum LeafType
@@ -58,6 +60,11 @@ typedef struct Node
     void *data;
     struct Node *next;
 } Node;
+
+typedef struct Block
+{
+    Node *statements;
+} Block;
 
 typedef struct Integer
 {
@@ -84,6 +91,19 @@ typedef struct Expression
     void *leaf;
 } Expression;
 
+typedef struct If
+{
+    Expression *condition;
+    Block *body;
+    struct If *next;
+} If;
+
+typedef struct While
+{
+    Expression *condition;
+    Block *body;
+} While;
+
 typedef struct Variable
 {
     char *name;
@@ -105,11 +125,6 @@ typedef struct Call
     TypeInfo *type_info;
     Expression *expression;
 } Call;
-
-typedef struct Block
-{
-    Node *statements;
-} Block;
 
 typedef struct Return
 {
@@ -136,6 +151,8 @@ Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block 
 Block *new_block(Node *statements);
 Return *new_return(Expression *expression);
 TypeInfo *new_type_info(Type type);
+If *new_if(Expression *condition, Block *body);
+While *new_while(Expression *condition, Block *body);
 
 char *node_to_string(Node *node);
 void destroy_node(Node *node);
