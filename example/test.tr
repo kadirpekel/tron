@@ -1,3 +1,4 @@
+
 func foo (c) {
     while (c) {
         c = c - 1;
@@ -5,8 +6,13 @@ func foo (c) {
     return c;
 }
 
-var a = 1;
+var a = 10;
+var b = 20;
 
 if (a) {
-    print(foo(100));
+    print(foo(a));
+} else if (b) {
+    print(foo(b));
+} else {
+    print(30);
 }

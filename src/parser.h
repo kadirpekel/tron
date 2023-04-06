@@ -23,12 +23,7 @@
 #include "lexer.h"
 #include "node.h"
 #include "scope.h"
-
-#define IF "if"
-#define WHILE "while"
-#define FUNCTION "func"
-#define VAR "var"
-#define RETURN "return"
+#include "constants.h"
 
 typedef struct ParserState
 {

@@ -359,9 +359,21 @@ Return *parse_return(ParserState *ps)
     return return_;
 }
 
-Block *parse_block(ParserState *ps)
+Block *parse_block(ParserState *ps, Function *function)
 {
     destroy_token(expect_token(ps, T_LCBRACET));
+
+    Scope *parent = ps->scope;
+
+    if (function == NULL)
+    {
+        ps->scope = new_scope(parent, parent->function);
+    }
+    else
+    {
+        ps->scope = new_scope(parent, function);
+    }
+
     Node *statement = parse(ps, NULL);
     Node *current = statement;
     while (current != NULL)
@@ -370,6 +382,9 @@ Block *parse_block(ParserState *ps)
         current = current->next;
     }
     Block *block = new_block(statement);
+
+    ps->scope = parent;
+
     destroy_token(expect_token(ps, T_RCBRACET));
     return block;
 }
@@ -420,10 +435,7 @@ Function *parse_function(ParserState *ps)
 
         function = new_function(name_token->buffer, type_info, params, NULL);
 
-        Scope *parent = ps->scope;
-        ps->scope = new_scope(parent, function);
-        function->body = parse_block(ps);
-        ps->scope = parent;
+        function->body = parse_block(ps, function);
 
         if (function->body == NULL)
         {
@@ -437,7 +449,7 @@ Function *parse_function(ParserState *ps)
     return function;
 }
 
-If *parse_if(ParserState *ps)
+If *parse_single_if(ParserState *ps)
 {
     If *if_ = NULL;
     Token *if_token;
@@ -452,18 +464,54 @@ If *parse_if(ParserState *ps)
         }
         destroy_token(expect_token(ps, T_RPAREN));
 
-        if_ = new_if(condition, NULL);
+        Block *body = parse_block(ps, NULL);
 
-        Scope *parent = ps->scope;
-        ps->scope = new_scope(parent, parent->function);
-        if_->body = parse_block(ps);
-        ps->scope = parent;
-        if (if_->body == NULL)
+        if (body == NULL)
         {
             parse_error(ps, "Condition body is missing");
         }
+
+        if_ = new_if(condition, body);
+
         destroy_token(if_token);
     }
+    return if_;
+}
+
+If *parse_if(ParserState *ps)
+{
+    If *if_ = parse_single_if(ps);
+
+    if (if_ != NULL)
+    {
+
+        If *current = if_;
+
+        Token *else_token;
+        while ((else_token = accept_keyword(ps, ELSE)) != NULL)
+        {
+
+            If *next = parse_single_if(ps);
+
+            if (next == NULL)
+            {
+                Block *body = parse_block(ps, NULL);
+                if (body != NULL)
+                {
+                    current->next = new_if(NULL, body);
+                    break;
+                }
+                else
+                {
+                    parse_error(ps, "Else statements is missing");
+                }
+            }
+
+            current->next = next;
+            current = next;
+        }
+    }
+
     return if_;
 }
 
@@ -482,16 +530,12 @@ While *parse_while(ParserState *ps)
         }
         destroy_token(expect_token(ps, T_RPAREN));
 
-        while_ = new_while(condition, NULL);
-
-        Scope *parent = ps->scope;
-        ps->scope = new_scope(parent, parent->function);
-        while_->body = parse_block(ps);
-        ps->scope = parent;
-        if (while_->body == NULL)
+        Block *body = parse_block(ps, NULL);
+        if (body == NULL)
         {
             parse_error(ps, "Body is missing");
         }
+        while_ = new_while(condition, body);
         destroy_token(while_token);
     }
     return while_;
