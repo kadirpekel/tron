@@ -20,6 +20,7 @@
 typedef enum Type
 {
     TYPE_INFER,
+    TYPE_BOOL,
     TYPE_INT,
     TYPE_FLOAT
 } Type;

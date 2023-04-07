@@ -88,6 +88,7 @@ Token *expect_token(ParserState *ps, int count, ...)
     }
     va_end(args);
 
+    printf("%s\n", ps->token->buffer);
     parse_error(ps, "Unexpected token");
     return NULL;
 }
@@ -120,7 +121,7 @@ Symbol *accept_type(ParserState *ps)
 
 void enter_scope(ParserState *ps, Function *function)
 {
-    if (function == NULL)
+    if (function == NULL && ps->scope->parent != NULL)
     {
         function = ps->scope->parent->function;
     }
@@ -215,28 +216,65 @@ Call *parse_call(ParserState *ps, Symbol *symbol)
     return call;
 }
 
+Expression *parse_unary_expression(ParserState *ps)
+{
+    Token *opToken;
+    if ((opToken = accept_token(ps, 3, T_XOR, T_LOGICAL_NOT, T_SUB)) != NULL)
+    {
+        Expression *operand = parse_unary_expression(ps);
+        if (operand == NULL)
+        {
+            parse_error(ps, "Operand is missing");
+        }
+        Expression *expression = new_expression(
+            opToken->buffer,
+            operand,
+            NULL,
+            NULL,
+            operand->type_info);
+        destroy_token(opToken);
+        return expression;
+    }
+
+    return parse_factor(ps);
+}
+
 Expression *parse_expression(ParserState *ps)
 {
-    Expression *left = parse_term(ps);
-    Token *opToken;
-    if (left != NULL && (opToken = accept_token(ps, 2, T_ADD, T_SUB)) != NULL)
+    return parse_binary_expression(ps, 0);
+}
+
+Expression *parse_binary_expression(ParserState *ps, int min_precedence)
+{
+    Expression *left = parse_unary_expression(ps);
+
+    Token *op_token = ps->token;
+    int i;
+    for (i = min_precedence; i < sizeof(PRECEDENCE_TABLE) / sizeof(PRECEDENCE_TABLE[0]); i++)
     {
-        Expression *right = parse_expression(ps);
 
-        if (right->type_info->type != left->type_info->type)
+        int num_types = sizeof(PRECEDENCE_TABLE[i]) / sizeof(PRECEDENCE_TABLE[i][0]);
+
+        int j;
+        for (j = 0; j < num_types; j++)
         {
-            parse_error(ps, "Types can not be mixed");
-        }
+            if (PRECEDENCE_TABLE[i][j] == op_token->token_type)
+            {
+                next_token(ps);
 
-        Expression *expresion = new_expression(
-            opToken->buffer,
-            left,
-            right,
-            NULL,
-            new_type_info(right->type_info->type));
-        destroy_token(opToken);
-        return expresion;
+                Expression *right = parse_binary_expression(ps, min_precedence + 1);
+                if (right == NULL)
+                {
+                    parse_error(ps, "Expected expression after binary operator");
+                }
+
+                left = new_expression(op_token->buffer, left, right, NULL, left->type_info);
+                destroy_token(op_token);
+                goto end;
+            }
+        }
     }
+end:
     return left;
 }
 
@@ -262,31 +300,6 @@ Expression *parse_expressions(ParserState *ps)
     }
 
     return expression;
-}
-
-Expression *parse_term(ParserState *ps)
-{
-    Expression *left = parse_factor(ps);
-    Token *opToken;
-    if (left != NULL && (opToken = accept_token(ps, 3, T_MUL, T_DIV, T_MOD)) != NULL)
-    {
-        Expression *right = parse_term(ps);
-
-        if (right->type_info->type != left->type_info->type)
-        {
-            parse_error(ps, "Types can not be mixed");
-        }
-
-        Expression *expression = new_expression(
-            opToken->buffer,
-            left,
-            right,
-            NULL,
-            new_type_info(right->type_info->type));
-        destroy_token(opToken);
-        return expression;
-    }
-    return left;
 }
 
 Expression *parse_factor(ParserState *ps)
@@ -440,7 +453,7 @@ Return *parse_return(ParserState *ps)
     Token *return_token;
     if ((return_token = accept_keyword(ps, RETURN)) != NULL)
     {
-        return_ = new_return(parse_expressions(ps));
+        return_ = new_return(parse_expression(ps));
 
         if (ps->scope->function->type_info->type == TYPE_INFER)
         {

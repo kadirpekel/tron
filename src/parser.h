@@ -40,6 +40,7 @@ Expression *parse_term(ParserState *ps);
 Expression *parse_factor(ParserState *ps);
 Expression *parse_expression(ParserState *ps);
 Node *parse_statement(ParserState *ps);
+Expression *parse_binary_expression(ParserState *ps, int min_precedence);
+Expression *parse_unary_expression(ParserState *ps);
 Node *parse(ParserState *ps);
-
 #endif

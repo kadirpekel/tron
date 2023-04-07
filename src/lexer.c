@@ -70,7 +70,6 @@ void init_lex_state(LexState *ls, FILE *file)
 
 Token *lex(LexState *ls)
 {
-
   if (ls->c == EOF)
   {
     accept(ls, T_EOF);
@@ -109,15 +108,7 @@ Token *lex(LexState *ls)
   }
   else if (ls->c == ':')
   {
-    next(ls);
-    if (ls->c == '=')
-    {
-      accept(ls, T_SHORT_ASSIGN);
-    }
-    else
-    {
-      accept(ls, T_COLON);
-    }
+    accept(ls, T_COLON);
   }
   else if (ls->c == ';')
   {
@@ -125,99 +116,86 @@ Token *lex(LexState *ls)
   }
   else if (ls->c == '+')
   {
-    next(ls);
-    if (ls->c == '=')
+    accept(ls, T_ADD);
+
+    if (ls->c == '+')
+    {
+      accept(ls, T_INC);
+    }
+    else if (ls->c == '=')
     {
       accept(ls, T_ADD_ASSIGN);
-    }
-    else
-    {
-      accept(ls, T_ADD);
     }
   }
   else if (ls->c == '-')
   {
-    next(ls);
-    if (ls->c == '=')
+    accept(ls, T_SUB);
+
+    if (ls->c == '-')
+    {
+      accept(ls, T_DEC);
+    }
+    else if (ls->c == '=')
     {
       accept(ls, T_SUB_ASSIGN);
-    }
-    else if (ls->c == '>')
-    {
-      accept(ls, T_ARROW);
-    }
-    else
-    {
-      accept(ls, T_SUB);
     }
   }
   else if (ls->c == '*')
   {
-    next(ls);
+    accept(ls, T_MUL);
+
     if (ls->c == '=')
     {
       accept(ls, T_MUL_ASSIGN);
     }
-    else
-    {
-      accept(ls, T_MUL);
-    }
   }
   else if (ls->c == '/')
   {
-    next(ls);
+    accept(ls, T_DIV);
     if (ls->c == '=')
     {
       accept(ls, T_DIV_ASSIGN);
     }
-    else
-    {
-      accept(ls, T_DIV);
-    }
   }
   else if (ls->c == '%')
   {
-    next(ls);
+    accept(ls, T_REM);
+
     if (ls->c == '=')
     {
-      accept(ls, T_MOD_ASSIGN);
+      accept(ls, T_REM_ASSIGN);
     }
-    else
-    {
-      accept(ls, T_MOD);
-    }
+  }
+  else if (ls->c == '!')
+  {
+    accept(ls, T_LOGICAL_NOT);
   }
   else if (ls->c == '&')
   {
-    next(ls);
+    accept(ls, T_AND);
+
     if (ls->c == '=')
     {
       accept(ls, T_AND_ASSIGN);
-    }
-    else if (ls->c == '^')
-    {
-      next(ls);
-      if (ls->c == '=')
-      {
-        accept(ls, T_BIT_CLEAR_ASSIGN);
-      }
-      else
-      {
-        accept(ls, T_BIT_CLEAR);
-      }
     }
     else if (ls->c == '&')
     {
       accept(ls, T_LOGICAL_AND);
     }
-    else
+    else if (ls->c == '^')
     {
-      accept(ls, T_BITWISE_AND);
+      accept(ls, T_BIT_CLEAR);
+
+      if (ls->c == '=')
+      {
+        accept(ls, T_BIT_CLEAR_ASSIGN);
+      }
     }
   }
   else if (ls->c == '|')
   {
-    next(ls);
+    accept(ls, T_OR);
+
     if (ls->c == '=')
     {
       accept(ls, T_OR_ASSIGN);
@@ -226,97 +204,58 @@ Token *lex(LexState *ls)
     {
       accept(ls, T_LOGICAL_OR);
     }
-    else
-    {
-      accept(ls, T_BITWISE_OR);
-    }
   }
   else if (ls->c == '^')
   {
-    next(ls);
+    accept(ls, T_XOR);
+
     if (ls->c == '=')
     {
       accept(ls, T_XOR_ASSIGN);
     }
-    else
-    {
-      accept(ls, T_BITWISE_XOR);
-    }
   }
   else if (ls->c == '<')
   {
-    next(ls);
-    if (ls->c == '=')
+    accept(ls, T_LT);
+    if (ls->c == '<')
     {
-      accept(ls, T_LTE);
-    }
-    else if (ls->c == '<')
-    {
-      next(ls);
+      accept(ls, T_SHL);
+
       if (ls->c == '=')
       {
-        accept(ls, T_LSHIFT_ASSIGN);
-      }
-      else
-      {
-        accept(ls, T_LSHIFT);
+        accept(ls, T_SHL_ASSIGN);
       }
     }
-    else if (ls->c == '-')
+    else if (ls->c == '=')
     {
-      accept(ls, T_CHAN_RECEIVE);
-    }
-    else
-    {
-      accept(ls, T_LT);
+      accept(ls, T_LTE);
     }
   }
   else if (ls->c == '>')
   {
-    next(ls);
-    if (ls->c == '=')
+    accept(ls, T_GT);
+
+    if (ls->c == '>')
     {
-      accept(ls, T_GTE);
-    }
-    else if (ls->c == '>')
-    {
-      next(ls);
+      accept(ls, T_SHR);
+
       if (ls->c == '=')
       {
-        accept(ls, T_RSHIFT_ASSIGN);
-      }
-      else
-      {
-        accept(ls, T_RSHIFT);
+        accept(ls, T_SHR_ASSIGN);
       }
     }
-    else
+    else if (ls->c == '=')
     {
-      accept(ls, T_GT);
+      accept(ls, T_GTE);
     }
   }
   else if (ls->c == '=')
   {
-    next(ls);
+    accept(ls, T_ASSIGN);
+
     if (ls->c == '=')
     {
       accept(ls, T_EQ);
-    }
-    else
-    {
-      accept(ls, T_ASSIGN);
-    }
-  }
-  else if (ls->c == '!')
-  {
-    next(ls);
-    if (ls->c == '=')
-    {
-      accept(ls, T_NEQ);
-    }
-    else
-    {
-      accept(ls, T_NOT);
     }
   }
   else if (ls->c == '#')

@@ -8,3 +8,11 @@ func myfunc(a: int, b: float): float {
 }
 
 var baz = myfunc(3) * (as_float(foo) + bar);
+
+if (foo >= 32) {
+    print(foo);
+} else if (baz >= 12) {
+    print(bar);
+} else {
+    print(baz);
+}
