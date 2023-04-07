@@ -57,8 +57,13 @@ unsigned int hash(char *str)
     return hash % SYMBOL_TABLE_SIZE;
 }
 
-void insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
+int insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
 {
+    Symbol *existing = lookup_symbol(scope, name);
+    if (existing != NULL)
+    {
+        return 0;
+    }
     unsigned int index = hash(name);
     Symbol *new_symbol = (Symbol *)malloc(sizeof(Symbol));
     new_symbol->name = strdup(name);
@@ -66,12 +71,7 @@ void insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *t
     new_symbol->type_info = type_info;
     new_symbol->next = scope->symbol_table[index];
     scope->symbol_table[index] = new_symbol;
-
-    printf("SYMBOL %s %d\n", name, symbol_type);
-    do
-    {
-        printf("\t TYPE %d\n", type_info->type);
-    } while ((type_info = type_info->next));
+    return 1;
 }
 
 Symbol *lookup_symbol(Scope *scope, char *name)

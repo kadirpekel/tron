@@ -22,8 +22,12 @@
 
 #include "parser.h"
 
-void visit_node(Node *node)
+void visit_node(ParserState *ps, Node *node)
 {
+  for (int i = 0; i < ps->depth; i++)
+  {
+    printf("\t");
+  }
   char *nodeString = node_to_string(node);
   printf("%s\n", nodeString);
   free(nodeString);
@@ -37,7 +41,9 @@ int main(int argc, char **argv)
   ParserState ps;
   init_parser(&ps, &ls);
 
-  Node *node = parse(&ps, visit_node);
+  ps.visit_node = visit_node;
+
+  Node *node = parse(&ps);
 
   // Do sth with entire ast here if you like
 

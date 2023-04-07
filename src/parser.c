@@ -39,6 +39,7 @@ void init_parser(ParserState *ps, LexState *ls)
 {
     ps->ls = ls;
     ps->scope = new_scope(NULL, NULL);
+    ps->depth = 0;
     next_token(ps);
 }
 
@@ -115,6 +116,24 @@ Symbol *accept_type(ParserState *ps)
         }
     }
     return NULL;
+}
+
+void enter_scope(ParserState *ps, Function *function)
+{
+    if (function == NULL)
+    {
+        function = ps->scope->parent->function;
+    }
+
+    Scope *scope = new_scope(ps->scope, function);
+    ps->scope = scope;
+    ps->depth++;
+}
+
+void exit_scope(ParserState *ps)
+{
+    ps->scope = ps->scope->parent;
+    ps->depth--;
 }
 
 TypeInfo *parse_type_info(ParserState *ps)
@@ -390,7 +409,10 @@ Variable *parse_param(ParserState *ps)
         }
 
         param = new_variable(name_token->buffer, type_info, expression);
-        insert_symbol(ps->scope, param->name, SYMBOL_VARIABLE, param->type_info);
+        if (!insert_symbol(ps->scope, param->name, SYMBOL_VARIABLE, param->type_info))
+        {
+            parse_error(ps, "Symbol already exists");
+        }
         destroy_token(name_token);
     }
     return param;
@@ -448,22 +470,9 @@ Return *parse_return(ParserState *ps)
 Block *parse_block(ParserState *ps, Function *function)
 {
     destroy_token(expect_token(ps, 1, T_LBRACE));
-
-    Scope *parent = ps->scope;
-
-    if (function == NULL)
-    {
-        ps->scope = new_scope(parent, parent->function);
-    }
-    else
-    {
-        ps->scope = new_scope(parent, function);
-    }
-
-    Block *block = new_block(parse(ps, NULL));
-
-    ps->scope = parent;
-
+    enter_scope(ps, function);
+    Block *block = new_block(parse(ps));
+    exit_scope(ps);
     destroy_token(expect_token(ps, 1, T_RBRACE));
     return block;
 }
@@ -522,7 +531,10 @@ Function *parse_function(ParserState *ps)
             parse_error(ps, "Function body is missing");
         }
 
-        insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info);
+        if (!insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info))
+        {
+            parse_error(ps, "Symbol already exists");
+        }
         destroy_token(name_token);
         destroy_token(def_token);
     }
@@ -729,7 +741,7 @@ Node *parse_statement(ParserState *ps)
     return NULL;
 }
 
-Node *parse(ParserState *ps, void (*visit_node)(Node *))
+Node *parse(ParserState *ps)
 {
 
     Node *node = parse_statement(ps);
@@ -737,9 +749,9 @@ Node *parse(ParserState *ps, void (*visit_node)(Node *))
     Node *current = node;
     while (current)
     {
-        if (visit_node != NULL)
+        if (ps->visit_node != NULL)
         {
-            visit_node(current);
+            ps->visit_node(ps, current);
         }
         current->next = parse_statement(ps);
         current = current->next;

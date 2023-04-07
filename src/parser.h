@@ -30,6 +30,8 @@ typedef struct ParserState
     LexState *ls;
     Scope *scope;
     Token *token;
+    void (*visit_node)(struct ParserState *ps, Node *node);
+    int depth;
 } ParserState;
 
 void init_parser(ParserState *ps, LexState *ls);
@@ -38,6 +40,6 @@ Expression *parse_term(ParserState *ps);
 Expression *parse_factor(ParserState *ps);
 Expression *parse_expression(ParserState *ps);
 Node *parse_statement(ParserState *ps);
-Node *parse(ParserState *ps, void (*visit_node)(Node *));
+Node *parse(ParserState *ps);
 
 #endif
