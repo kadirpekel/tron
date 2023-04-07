@@ -31,19 +31,19 @@ typedef struct TypeInfo
 
 typedef enum NodeType
 {
-    N_INTEGER = 0,
-    N_NAME = 1 << 0,
-    N_EXPRESSION = 1 << 1,
-    N_VARIABLE = 1 << 2,
-    N_ASSIGNMENT = 1 << 3,
-    N_FUNCTION = 1 << 4,
-    N_CALL = 1 << 5,
-    N_RETURN = 1 << 6,
-    N_BLOCK = 1 << 7,
-    N_TYPEINFO = 1 << 8,
-    N_IF = 1 << 9,
-    N_WHILE = 1 << 10,
-    N_FLOAT = 1 << 11,
+    N_INTEGER,
+    N_NAME,
+    N_EXPRESSION,
+    N_VARIABLE,
+    N_ASSIGNMENT,
+    N_FUNCTION,
+    N_CALL,
+    N_RETURN,
+    N_BLOCK,
+    N_TYPEINFO,
+    N_IF,
+    N_WHILE,
+    N_FLOAT,
 } NodeType;
 
 typedef struct Node

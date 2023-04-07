@@ -20,60 +20,111 @@
 #include <stdio.h>
 #include "type.h"
 
+/*--------------------------------
+| Operator | Token Name           |
+|----------|----------------------|
+| (        | T_LPAREN             |
+| )        | T_RPAREN             |
+| [        | T_LBRACKET           |
+| ]        | T_RBRACKET           |
+| {        | T_LBRACE             |
+| }        | T_RBRACE             |
+| .        | T_DOT                |
+| ,        | T_COMMA              |
+| :        | T_COLON              |
+| ;        | T_SEMICOLON          |
+| ...      | T_ELLIPSIS           |
+| +        | T_ADD                |
+| -        | T_SUB                |
+| *        | T_MUL                |
+| /        | T_DIV                |
+| %        | T_MOD                |
+| &        | T_BITWISE_AND        |
+| |        | T_BITWISE_OR         |
+| ^        | T_BITWISE_XOR        |
+| &^       | T_BIT_CLEAR          |
+| <<       | T_LSHIFT             |
+| >>       | T_RSHIFT             |
+| ==       | T_EQ                 |
+| !=       | T_NEQ                |
+| <        | T_LT                 |
+| <=       | T_LTE                |
+| >        | T_GT                 |
+| >=       | T_GTE                |
+| &&       | T_LOGICAL_AND        |
+| ||       | T_LOGICAL_OR         |
+| <-       | T_CHAN_RECEIVE       |
+| !        | T_NOT                |
+| =        | T_ASSIGN             |
+| :=       | T_SHORT_ASSIGN       |
+| +=       | T_ADD_ASSIGN         |
+| -=       | T_SUB_ASSIGN         |
+| *=       | T_MUL_ASSIGN         |
+| /=       | T_DIV_ASSIGN         |
+| %=       | T_MOD_ASSIGN         |
+| &=       | T_AND_ASSIGN         |
+| |=       | T_OR_ASSIGN          |
+| ^=       | T_XOR_ASSIGN         |
+| <<=      | T_LSHIFT_ASSIGN      |
+| >>=      | T_RSHIFT_ASSIGN      |
+| &^=      | T_BIT_CLEAR_ASSIGN   |
+----------------------------------*/
+
 typedef enum
 {
-  T_EOF = 1 << 0,
-  T_SPACE = 1 << 1,
-  T_LPAREN = 1 << 2,
-  T_RPAREN = 1 << 3,
-  T_LBRACKET = 1 << 4,
-  T_RBRACKET = 1 << 5,
-  T_DOT = 1 << 6,
-  T_COMMA = 1 << 7,
-  T_COLON = 1 << 8,
-  T_SHORT_ASSIGN = 1 << 9,
-  T_SEMICOLON = 1 << 10,
-  T_ADD = 1 << 11,
-  T_ADD_ASSIGN = 1 << 12,
-  T_SUB = 1 << 13,
-  T_SUB_ASSIGN = 1 << 14,
-  T_ARROW = 1 << 15,
-  T_MUL = 1 << 16,
-  T_MUL_ASSIGN = 1 << 17,
-  T_DIV = 1 << 18,
-  T_DIV_ASSIGN = 1 << 19,
-  T_MOD = 1 << 20,
-  T_MOD_ASSIGN = 1 << 21,
-  T_AND_ASSIGN = 1 << 22,
-  T_BIT_CLEAR = 1 << 23,
-  T_BIT_CLEAR_ASSIGN = 1 << 24,
-  T_LOGICAL_AND = 1 << 25,
-  T_BITWISE_AND = 1 << 26,
-  T_OR_ASSIGN = 1 << 27,
-  T_LOGICAL_OR = 1 << 28,
-  T_BITWISE_OR = 1 << 29,
-  T_XOR_ASSIGN = 1 << 30,
-  T_BITWISE_XOR = 1 << 31,
-  T_LTE = 1 << 32,
-  T_LSHIFT = 1 << 33,
-  T_LSHIFT_ASSIGN = 1 << 34,
-  T_CHAN_RECEIVE = 1 << 35,
-  T_LT = 1 << 36,
-  T_GTE = 1 << 37,
-  T_RSHIFT = 1 << 38,
-  T_RSHIFT_ASSIGN = 1 << 39,
-  T_GT = 1 << 40,
-  T_EQ = 1 << 41,
-  T_ASSIGN = 1 << 42,
-  T_NEQ = 1 << 43,
-  T_NOT = 1 << 44,
-  T_COMMENT = 1 << 45,
-  T_NAME = 1 << 46,
-  T_INTEGER = 1 << 47,
-  T_FLOAT = 1 << 48,
-  T_STRING = 1 << 49,
-  T_LBRACE = 1 << 50,
-  T_RBRACE = 1 << 51,
+  T_NOMATCH,
+  T_EOF,
+  T_SPACE,
+  T_LPAREN,
+  T_RPAREN,
+  T_LBRACKET,
+  T_RBRACKET,
+  T_DOT,
+  T_COMMA,
+  T_COLON,
+  T_SHORT_ASSIGN,
+  T_SEMICOLON,
+  T_ADD,
+  T_ADD_ASSIGN,
+  T_SUB,
+  T_SUB_ASSIGN,
+  T_ARROW,
+  T_MUL,
+  T_MUL_ASSIGN,
+  T_DIV,
+  T_DIV_ASSIGN,
+  T_MOD,
+  T_MOD_ASSIGN,
+  T_AND_ASSIGN,
+  T_BIT_CLEAR,
+  T_BIT_CLEAR_ASSIGN,
+  T_LOGICAL_AND,
+  T_BITWISE_AND,
+  T_OR_ASSIGN,
+  T_LOGICAL_OR,
+  T_BITWISE_OR,
+  T_XOR_ASSIGN,
+  T_BITWISE_XOR,
+  T_LTE,
+  T_LSHIFT,
+  T_LSHIFT_ASSIGN,
+  T_CHAN_RECEIVE,
+  T_LT,
+  T_GTE,
+  T_RSHIFT,
+  T_RSHIFT_ASSIGN,
+  T_GT,
+  T_EQ,
+  T_ASSIGN,
+  T_NEQ,
+  T_NOT,
+  T_COMMENT,
+  T_NAME,
+  T_INTEGER,
+  T_FLOAT,
+  T_STRING,
+  T_LBRACE,
+  T_RBRACE,
 } TokenType;
 
 typedef struct Token

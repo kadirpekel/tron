@@ -44,7 +44,7 @@ void next(LexState *ls)
   }
 }
 
-void accept(LexState *ls, int type)
+void accept(LexState *ls, TokenType type)
 {
   ls->buffer[ls->length++] = ls->c;
   ls->token_type = type;
@@ -63,60 +63,10 @@ void init_lex_state(LexState *ls, FILE *file)
   ls->length = 0;
   ls->col = 0;
   ls->line = 0;
-  ls->token_type = T_EOF;
+  ls->token_type = T_NOMATCH;
   ls->file = file;
   next(ls);
 }
-
-/*--------------------------------
-| Operator | Token Name           |
-|----------|----------------------|
-| (        | T_LPAREN             |
-| )        | T_RPAREN             |
-| [        | T_LBRACKET           |
-| ]        | T_RBRACKET           |
-| {        | T_LBRACE             |
-| }        | T_RBRACE             |
-| .        | T_DOT                |
-| ,        | T_COMMA              |
-| :        | T_COLON              |
-| ;        | T_SEMICOLON          |
-| ...      | T_ELLIPSIS           |
-| +        | T_ADD                |
-| -        | T_SUB                |
-| *        | T_MUL                |
-| /        | T_DIV                |
-| %        | T_MOD                |
-| &        | T_BITWISE_AND        |
-| |        | T_BITWISE_OR         |
-| ^        | T_BITWISE_XOR        |
-| &^       | T_BIT_CLEAR          |
-| <<       | T_LSHIFT             |
-| >>       | T_RSHIFT             |
-| ==       | T_EQ                 |
-| !=       | T_NEQ                |
-| <        | T_LT                 |
-| <=       | T_LTE                |
-| >        | T_GT                 |
-| >=       | T_GTE                |
-| &&       | T_LOGICAL_AND        |
-| ||       | T_LOGICAL_OR         |
-| <-       | T_CHAN_RECEIVE       |
-| !        | T_NOT                |
-| =        | T_ASSIGN             |
-| :=       | T_SHORT_ASSIGN       |
-| +=       | T_ADD_ASSIGN         |
-| -=       | T_SUB_ASSIGN         |
-| *=       | T_MUL_ASSIGN         |
-| /=       | T_DIV_ASSIGN         |
-| %=       | T_MOD_ASSIGN         |
-| &=       | T_AND_ASSIGN         |
-| |=       | T_OR_ASSIGN          |
-| ^=       | T_XOR_ASSIGN         |
-| <<=      | T_LSHIFT_ASSIGN      |
-| >>=      | T_RSHIFT_ASSIGN      |
-| &^=      | T_BIT_CLEAR_ASSIGN   |
-----------------------------------*/
 
 Token *lex(LexState *ls)
 {
@@ -417,7 +367,7 @@ Token *lex(LexState *ls)
   }
   else
   {
-    lexer_error(ls, "Unexpected token");
+    accept(ls, T_NOMATCH);
   }
 
   return reset(ls);

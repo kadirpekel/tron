@@ -19,9 +19,9 @@
 
 typedef enum Type
 {
-    TYPE_INFER = 0,
-    TYPE_INT = 1 << 0,
-    TYPE_FLOAT = 1 << 1
+    TYPE_INFER,
+    TYPE_INT,
+    TYPE_FLOAT
 } Type;
 
 #endif
