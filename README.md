@@ -16,12 +16,26 @@ var foo = 3;
 
 var bar: float = 4.42;
 
-func myfunc(a: int, b: float = 0.5): float {
-    var c = a * b;
+func myfunc(a: int, b: float): float {
+    var c = as_float(a) * b;
     return c;
 }
 
-var baz = myfunc(3) * (foo + bar);
+var baz = myfunc(3) * (as_float(foo) + bar);
+
+if (foo >= 32) {
+    print(foo);
+} else if (baz >= 12) {
+    print(bar);
+} else {
+    print(baz);
+}
+
+var i = 0;
+while (i < 10) {
+    print(i);
+    i = i + 1;
+}
 
 ```
 

@@ -721,7 +721,7 @@ Node *parse_statement(ParserState *ps)
     While *while_ = parse_while(ps);
     if (while_ != NULL)
     {
-        return new_node(N_IF, while_);
+        return new_node(N_WHILE, while_);
     }
 
     Function *function = parse_function(ps);
