@@ -24,35 +24,44 @@
 
 #include "parser.h"
 
-void next_token(ParserState *ps)
+void next_token(Parser *p)
 {
-    Token *token = lex(ps->ls);
+    Token *token = lex(p->l);
     while (token->token_type == T_SPACE || token->token_type == T_COMMENT)
     {
-        destroy_token(token);
-        token = lex(ps->ls);
+        dispose_token(token);
+        token = lex(p->l);
     }
-    ps->token = token;
+    p->token = token;
 }
 
-void init_parser(ParserState *ps, LexState *ls)
+Parser *new_parser(FILE *file)
 {
-    ps->ls = ls;
-    ps->scope = new_scope(NULL, NULL);
-    ps->depth = 0;
-    next_token(ps);
+    Parser *p = malloc(sizeof(Parser));
+    p->l = new_lexer(file);
+    p->scope = new_scope(NULL, NULL);
+    p->depth = 0;
+    next_token(p);
+    return p;
 }
 
-void parse_error(ParserState *ps, char *msg)
+void dispose_parser(Parser *p)
+{
+    dispose_lexer(p->l);
+    dispose_scope(p->scope);
+    free(p);
+}
+
+void parse_error(Parser *p, char *msg)
 {
     fprintf(stderr, "Syntax Error <%d:%d> %s\n",
-            ps->ls->line,
-            ps->ls->col,
+            p->l->line,
+            p->l->col,
             msg);
     exit(EXIT_FAILURE);
 }
 
-Token *accept_token(ParserState *ps, int num_types, ...)
+Token *accept_token(Parser *p, int num_types, ...)
 {
     Token *token = NULL;
     va_list args;
@@ -60,10 +69,10 @@ Token *accept_token(ParserState *ps, int num_types, ...)
     for (int i = 0; i < num_types; i++)
     {
         TokenType token_type = va_arg(args, TokenType);
-        if (ps->token->token_type == token_type)
+        if (p->token->token_type == token_type)
         {
-            token = ps->token;
-            next_token(ps);
+            token = p->token;
+            next_token(p);
             break;
         }
     }
@@ -71,7 +80,7 @@ Token *accept_token(ParserState *ps, int num_types, ...)
     return token;
 }
 
-Token *expect_token(ParserState *ps, int count, ...)
+Token *expect_token(Parser *p, int count, ...)
 {
     va_list args;
     Token *token;
@@ -80,7 +89,7 @@ Token *expect_token(ParserState *ps, int count, ...)
     for (int i = 0; i < count; i++)
     {
         TokenType tokenType = va_arg(args, TokenType);
-        if ((token = accept_token(ps, tokenType)) != NULL)
+        if ((token = accept_token(p, tokenType)) != NULL)
         {
             va_end(args);
             return token;
@@ -88,143 +97,143 @@ Token *expect_token(ParserState *ps, int count, ...)
     }
     va_end(args);
 
-    printf("%s\n", ps->token->buffer);
-    parse_error(ps, "Unexpected token");
+    printf("%s\n", p->token->buffer);
+    parse_error(p, "Unexpected token");
     return NULL;
 }
 
-Token *accept_keyword(ParserState *ps, char *keyword)
+Token *accept_keyword(Parser *p, char *keyword)
 {
     Token *token = NULL;
 
-    if ((ps->token->token_type & T_NAME) != 0 && strcmp(ps->token->buffer, keyword) == 0)
+    if ((p->token->token_type & T_NAME) != 0 && strcmp(p->token->buffer, keyword) == 0)
     {
-        token = accept_token(ps, 1, T_NAME);
+        token = accept_token(p, 1, T_NAME);
     }
     return token;
 }
 
-Symbol *accept_type(ParserState *ps)
+Symbol *accept_type(Parser *p)
 {
-    if ((ps->token->token_type & T_NAME) != 0)
+    if ((p->token->token_type & T_NAME) != 0)
     {
-        Symbol *symbol = lookup_symbol(ps->scope, ps->token->buffer);
+        Symbol *symbol = lookup_symbol(p->scope, p->token->buffer);
         if (symbol != NULL && symbol->symbol_type == SYMBOL_TYPE)
         {
 
-            accept_token(ps, 1, T_NAME);
+            accept_token(p, 1, T_NAME);
             return symbol;
         }
     }
     return NULL;
 }
 
-void enter_scope(ParserState *ps, Function *function)
+void enter_scope(Parser *p, Function *function)
 {
-    if (function == NULL && ps->scope->parent != NULL)
+    if (function == NULL && p->scope->parent != NULL)
     {
-        function = ps->scope->parent->function;
+        function = p->scope->parent->function;
     }
 
-    Scope *scope = new_scope(ps->scope, function);
-    ps->scope = scope;
-    ps->depth++;
+    Scope *scope = new_scope(p->scope, function);
+    p->scope = scope;
+    p->depth++;
 }
 
-void exit_scope(ParserState *ps)
+void exit_scope(Parser *p)
 {
-    ps->scope = ps->scope->parent;
-    ps->depth--;
+    p->scope = p->scope->parent;
+    p->depth--;
 }
 
-TypeInfo *parse_type_info(ParserState *ps)
+TypeInfo *parse_type_info(Parser *p)
 {
     TypeInfo *type_info = NULL;
     Symbol *symbol;
-    if ((symbol = accept_type(ps)) != NULL)
+    if ((symbol = accept_type(p)) != NULL)
     {
         type_info = new_type_info(symbol->type_info->type);
     }
     return type_info;
 }
 
-TypeInfo *parse_type_infos(ParserState *ps)
+TypeInfo *parse_type_infos(Parser *p)
 {
     TypeInfo *type_info = NULL;
     Token *lparen_token = NULL;
 
-    if ((lparen_token = accept_token(ps, 1, T_LPAREN)) != NULL)
+    if ((lparen_token = accept_token(p, 1, T_LPAREN)) != NULL)
     {
-        type_info = parse_type_info(ps);
+        type_info = parse_type_info(p);
         if (type_info == NULL)
         {
-            parse_error(ps, "Type info is missing");
+            parse_error(p, "Type info is missing");
         }
 
         Token *commaToken;
         TypeInfo *current = type_info;
-        while ((commaToken = accept_token(ps, 1, T_COMMA)) != NULL)
+        while ((commaToken = accept_token(p, 1, T_COMMA)) != NULL)
         {
-            TypeInfo *next = parse_type_info(ps);
+            TypeInfo *next = parse_type_info(p);
             if (next == NULL)
             {
-                parse_error(ps, "Type info is missing");
+                parse_error(p, "Type info is missing");
             }
             current->next = next;
             current = current->next;
-            destroy_token(commaToken);
+            dispose_token(commaToken);
         }
 
-        destroy_token(expect_token(ps, 1, T_RPAREN));
-        destroy_token(lparen_token);
+        dispose_token(expect_token(p, 1, T_RPAREN));
+        dispose_token(lparen_token);
     }
     else
     {
-        type_info = parse_type_info(ps);
+        type_info = parse_type_info(p);
     }
 
     return type_info;
 }
 
-Call *parse_call(ParserState *ps, Symbol *symbol)
+Call *parse_call(Parser *p, Symbol *symbol)
 {
     Call *call = NULL;
     Token *lparen_token = NULL;
 
-    if ((lparen_token = accept_token(ps, 1, T_LPAREN)) != NULL)
+    if ((lparen_token = accept_token(p, 1, T_LPAREN)) != NULL)
     {
-        Expression *expression = parse_expression(ps);
+        Expression *expression = parse_expression(p);
 
         Token *commaToken;
         Expression *current = expression;
-        while ((commaToken = accept_token(ps, 1, T_COMMA)) != NULL)
+        while ((commaToken = accept_token(p, 1, T_COMMA)) != NULL)
         {
-            Expression *next = parse_expression(ps);
+            Expression *next = parse_expression(p);
             if (next == NULL)
             {
-                parse_error(ps, "Expression is missing");
+                parse_error(p, "Expression is missing");
             }
             current->next = next;
             current = next;
-            destroy_token(commaToken);
+            dispose_token(commaToken);
         }
 
         call = new_call(symbol->name, symbol->type_info, expression);
-        destroy_token(expect_token(ps, 1, T_RPAREN));
-        destroy_token(lparen_token);
+        dispose_token(expect_token(p, 1, T_RPAREN));
+        dispose_token(lparen_token);
     }
     return call;
 }
 
-Expression *parse_unary_expression(ParserState *ps)
+Expression *parse_unary_expression(Parser *p)
 {
     Token *opToken;
-    if ((opToken = accept_token(ps, 3, T_XOR, T_LOGICAL_NOT, T_SUB)) != NULL)
+    if ((opToken = accept_token(p, 3, T_XOR, T_LOGICAL_NOT, T_SUB)) != NULL)
     {
-        Expression *operand = parse_unary_expression(ps);
+        Expression *operand = parse_unary_expression(p);
         if (operand == NULL)
         {
-            parse_error(ps, "Operand is missing");
+            parse_error(p, "Operand is missing");
         }
         Expression *expression = new_expression(
             opToken->buffer,
@@ -232,23 +241,23 @@ Expression *parse_unary_expression(ParserState *ps)
             NULL,
             NULL,
             operand->type_info);
-        destroy_token(opToken);
+        dispose_token(opToken);
         return expression;
     }
 
-    return parse_factor(ps);
+    return parse_factor(p);
 }
 
-Expression *parse_expression(ParserState *ps)
+Expression *parse_expression(Parser *p)
 {
-    return parse_binary_expression(ps, 0);
+    return parse_binary_expression(p, 0);
 }
 
-Expression *parse_binary_expression(ParserState *ps, int min_precedence)
+Expression *parse_binary_expression(Parser *p, int min_precedence)
 {
-    Expression *left = parse_unary_expression(ps);
+    Expression *left = parse_unary_expression(p);
 
-    Token *op_token = ps->token;
+    Token *op_token = p->token;
     int i;
     for (i = min_precedence; i < sizeof(PRECEDENCE_TABLE) / sizeof(PRECEDENCE_TABLE[0]); i++)
     {
@@ -260,16 +269,16 @@ Expression *parse_binary_expression(ParserState *ps, int min_precedence)
         {
             if (PRECEDENCE_TABLE[i][j] == op_token->token_type)
             {
-                next_token(ps);
+                next_token(p);
 
-                Expression *right = parse_binary_expression(ps, min_precedence + 1);
+                Expression *right = parse_binary_expression(p, min_precedence + 1);
                 if (right == NULL)
                 {
-                    parse_error(ps, "Expected expression after binary operator");
+                    parse_error(p, "Expected expression after binary operator");
                 }
 
                 left = new_expression(op_token->buffer, left, right, NULL, left->type_info);
-                destroy_token(op_token);
+                dispose_token(op_token);
                 goto end;
             }
         }
@@ -278,44 +287,44 @@ end:
     return left;
 }
 
-Expression *parse_expressions(ParserState *ps)
+Expression *parse_expressions(Parser *p)
 {
-    Expression *expression = parse_expression(ps);
+    Expression *expression = parse_expression(p);
 
     if (expression != NULL)
     {
         Token *commaToken;
         Expression *current = expression;
-        while ((commaToken = accept_token(ps, 1, T_COMMA)) != NULL)
+        while ((commaToken = accept_token(p, 1, T_COMMA)) != NULL)
         {
-            Expression *next = parse_expression(ps);
+            Expression *next = parse_expression(p);
             if (next == NULL)
             {
-                parse_error(ps, "Expression is missing");
+                parse_error(p, "Expression is missing");
             }
             current->next = next;
             current = current->next;
-            destroy_token(commaToken);
+            dispose_token(commaToken);
         }
     }
 
     return expression;
 }
 
-Expression *parse_factor(ParserState *ps)
+Expression *parse_factor(Parser *p)
 {
     Expression *expression = NULL;
 
-    if (ps->token->token_type == T_LPAREN)
+    if (p->token->token_type == T_LPAREN)
     {
-        destroy_token(expect_token(ps, 1, T_LPAREN));
-        expression = parse_expression(ps);
-        destroy_token(expect_token(ps, 1, T_RPAREN));
+        dispose_token(expect_token(p, 1, T_LPAREN));
+        expression = parse_expression(p);
+        dispose_token(expect_token(p, 1, T_RPAREN));
     }
     else
     {
         Token *leaf_token;
-        if ((leaf_token = accept_token(ps, 3, T_INTEGER, T_FLOAT, T_NAME)) != NULL)
+        if ((leaf_token = accept_token(p, 3, T_INTEGER, T_FLOAT, T_NAME)) != NULL)
         {
             if (leaf_token->token_type == T_INTEGER)
             {
@@ -337,15 +346,15 @@ Expression *parse_factor(ParserState *ps)
             }
             else if (leaf_token->token_type == T_NAME)
             {
-                Symbol *symbol = lookup_symbol(ps->scope, leaf_token->buffer);
+                Symbol *symbol = lookup_symbol(p->scope, leaf_token->buffer);
                 if (symbol != NULL)
                 {
                     if (symbol->symbol_type == SYMBOL_FUNCTION)
                     {
-                        Call *call = parse_call(ps, symbol);
+                        Call *call = parse_call(p, symbol);
                         if (call == NULL)
                         {
-                            parse_error(ps, "Function call missing");
+                            parse_error(p, "Function call missing");
                         }
                         expression = new_expression(
                             leaf_token->buffer,
@@ -365,40 +374,40 @@ Expression *parse_factor(ParserState *ps)
                     }
                     else
                     {
-                        parse_error(ps, "Invalid symbol found");
+                        parse_error(p, "Invalid symbol found");
                     }
                 }
                 else
                 {
-                    parse_error(ps, "Symbol not found");
+                    parse_error(p, "Symbol not found");
                 }
             }
-            destroy_token(leaf_token);
+            dispose_token(leaf_token);
         }
     }
     return expression;
 }
 
-Variable *parse_param(ParserState *ps)
+Variable *parse_param(Parser *p)
 {
     Variable *param = NULL;
     Token *name_token;
 
-    if ((name_token = accept_token(ps, 1, T_NAME)) != NULL)
+    if ((name_token = accept_token(p, 1, T_NAME)) != NULL)
     {
         TypeInfo *type_info = NULL;
         Expression *expression = NULL;
 
         Token *colon_token;
-        if ((colon_token = accept_token(ps, 1, T_COLON)) != NULL)
+        if ((colon_token = accept_token(p, 1, T_COLON)) != NULL)
         {
-            type_info = parse_type_info(ps);
+            type_info = parse_type_info(p);
 
             if (type_info == NULL)
             {
-                parse_error(ps, "Type info is missing");
+                parse_error(p, "Type info is missing");
             }
-            destroy_token(colon_token);
+            dispose_token(colon_token);
         }
         else
         {
@@ -406,128 +415,128 @@ Variable *parse_param(ParserState *ps)
         }
 
         Token *assign_token;
-        if ((assign_token = accept_token(ps, 1, T_ASSIGN)) != NULL)
+        if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
         {
-            expression = parse_expression(ps);
+            expression = parse_expression(p);
             if (expression == NULL)
             {
-                parse_error(ps, "Assignment requires expression");
+                parse_error(p, "Assignment requires expression");
             }
-            destroy_token(assign_token);
+            dispose_token(assign_token);
         }
 
         if (type_info->type == TYPE_INFER && expression == NULL)
         {
-            parse_error(ps, "Variable needs assignment");
+            parse_error(p, "Variable needs assignment");
         }
 
         param = new_variable(name_token->buffer, type_info, expression);
-        if (!insert_symbol(ps->scope, param->name, SYMBOL_VARIABLE, param->type_info))
+        if (!insert_symbol(p->scope, param->name, SYMBOL_VARIABLE, param->type_info))
         {
-            parse_error(ps, "Symbol already exists");
+            parse_error(p, "Symbol already exists");
         }
-        destroy_token(name_token);
+        dispose_token(name_token);
     }
     return param;
 }
 
-Variable *parse_variable(ParserState *ps)
+Variable *parse_variable(Parser *p)
 {
     Variable *param = NULL;
     Token *var_token;
-    if ((var_token = accept_keyword(ps, VAR)) != NULL)
+    if ((var_token = accept_keyword(p, VAR)) != NULL)
     {
-        param = parse_param(ps);
+        param = parse_param(p);
         if (param == NULL)
         {
-            parse_error(ps, "Variable not initialized");
+            parse_error(p, "Variable not initialized");
         }
-        destroy_token(expect_token(ps, 1, T_SEMICOLON));
+        dispose_token(expect_token(p, 1, T_SEMICOLON));
     }
     return param;
 }
 
-Return *parse_return(ParserState *ps)
+Return *parse_return(Parser *p)
 {
     Return *return_ = NULL;
     Token *return_token;
-    if ((return_token = accept_keyword(ps, RETURN)) != NULL)
+    if ((return_token = accept_keyword(p, RETURN)) != NULL)
     {
-        return_ = new_return(parse_expression(ps));
+        return_ = new_return(parse_expression(p));
 
-        if (ps->scope->function->type_info->type == TYPE_INFER)
+        if (p->scope->function->type_info->type == TYPE_INFER)
         {
             if (return_->expression->type_info->type == TYPE_INFER)
             {
-                parse_error(ps, "Can not infer the return type");
+                parse_error(p, "Can not infer the return type");
             }
             else
             {
-                ps->scope->function->type_info = return_->expression->type_info;
+                p->scope->function->type_info = return_->expression->type_info;
             }
         }
         else
         {
-            if (return_->expression->type_info->type != ps->scope->function->type_info->type)
+            if (return_->expression->type_info->type != p->scope->function->type_info->type)
             {
-                parse_error(ps, "Invalid or inconsistent return type");
+                parse_error(p, "Invalid or inconsistent return type");
             }
         }
 
-        destroy_token(expect_token(ps, 1, T_SEMICOLON));
-        destroy_token(return_token);
+        dispose_token(expect_token(p, 1, T_SEMICOLON));
+        dispose_token(return_token);
     }
     return return_;
 }
 
-Block *parse_block(ParserState *ps, Function *function)
+Block *parse_block(Parser *p, Function *function)
 {
-    destroy_token(expect_token(ps, 1, T_LBRACE));
-    enter_scope(ps, function);
-    Block *block = new_block(parse(ps));
-    exit_scope(ps);
-    destroy_token(expect_token(ps, 1, T_RBRACE));
+    dispose_token(expect_token(p, 1, T_LBRACE));
+    enter_scope(p, function);
+    Block *block = new_block(parse(p));
+    exit_scope(p);
+    dispose_token(expect_token(p, 1, T_RBRACE));
     return block;
 }
 
-Variable *parse_params(ParserState *ps)
+Variable *parse_params(Parser *p)
 {
-    Variable *param = parse_param(ps);
+    Variable *param = parse_param(p);
     Variable *current = param;
-    Token *comma_token = accept_token(ps, 1, T_COMMA);
+    Token *comma_token = accept_token(p, 1, T_COMMA);
     while (comma_token != NULL)
     {
-        current->next = parse_param(ps);
+        current->next = parse_param(p);
         current = current->next;
-        comma_token = accept_token(ps, 1, T_COMMA);
+        comma_token = accept_token(p, 1, T_COMMA);
     }
     return param;
 }
 
-Function *parse_function(ParserState *ps)
+Function *parse_function(Parser *p)
 {
     Function *function = NULL;
     Token *def_token;
 
-    if ((def_token = accept_keyword(ps, FUNCTION)) != NULL)
+    if ((def_token = accept_keyword(p, FUNCTION)) != NULL)
     {
-        Token *name_token = expect_token(ps, 1, T_NAME);
+        Token *name_token = expect_token(p, 1, T_NAME);
 
-        destroy_token(expect_token(ps, 1, T_LPAREN));
-        Variable *params = parse_params(ps);
-        destroy_token(expect_token(ps, 1, T_RPAREN));
+        dispose_token(expect_token(p, 1, T_LPAREN));
+        Variable *params = parse_params(p);
+        dispose_token(expect_token(p, 1, T_RPAREN));
 
         TypeInfo *type_info = NULL;
         Token *colon_token = NULL;
-        if ((colon_token = accept_token(ps, 1, T_COLON)) != NULL)
+        if ((colon_token = accept_token(p, 1, T_COLON)) != NULL)
         {
-            type_info = parse_type_info(ps);
+            type_info = parse_type_info(p);
 
             if (type_info == NULL)
             {
-                parse_error(ps, "Type info is missing");
+                parse_error(p, "Type info is missing");
             }
-            destroy_token(colon_token);
+            dispose_token(colon_token);
         }
 
         if (type_info == NULL)
@@ -537,55 +546,55 @@ Function *parse_function(ParserState *ps)
 
         function = new_function(name_token->buffer, type_info, params, NULL);
 
-        function->body = parse_block(ps, function);
+        function->body = parse_block(p, function);
 
         if (function->body == NULL)
         {
-            parse_error(ps, "Function body is missing");
+            parse_error(p, "Function body is missing");
         }
 
-        if (!insert_symbol(ps->scope, function->name, SYMBOL_FUNCTION, function->type_info))
+        if (!insert_symbol(p->scope, function->name, SYMBOL_FUNCTION, function->type_info))
         {
-            parse_error(ps, "Symbol already exists");
+            parse_error(p, "Symbol already exists");
         }
-        destroy_token(name_token);
-        destroy_token(def_token);
+        dispose_token(name_token);
+        dispose_token(def_token);
     }
     return function;
 }
 
-If *parse_single_if(ParserState *ps)
+If *parse_single_if(Parser *p)
 {
     If *if_ = NULL;
     Token *if_token;
 
-    if ((if_token = accept_keyword(ps, IF)) != NULL)
+    if ((if_token = accept_keyword(p, IF)) != NULL)
     {
-        destroy_token(expect_token(ps, 1, T_LPAREN));
-        Expression *condition = parse_expression(ps);
+        dispose_token(expect_token(p, 1, T_LPAREN));
+        Expression *condition = parse_expression(p);
         if (condition == NULL)
         {
-            parse_error(ps, "Condition expression is missing");
+            parse_error(p, "Condition expression is missing");
         }
-        destroy_token(expect_token(ps, 1, T_RPAREN));
+        dispose_token(expect_token(p, 1, T_RPAREN));
 
-        Block *body = parse_block(ps, NULL);
+        Block *body = parse_block(p, NULL);
 
         if (body == NULL)
         {
-            parse_error(ps, "Condition body is missing");
+            parse_error(p, "Condition body is missing");
         }
 
         if_ = new_if(condition, body);
 
-        destroy_token(if_token);
+        dispose_token(if_token);
     }
     return if_;
 }
 
-If *parse_if(ParserState *ps)
+If *parse_if(Parser *p)
 {
-    If *if_ = parse_single_if(ps);
+    If *if_ = parse_single_if(p);
 
     if (if_ != NULL)
     {
@@ -593,14 +602,14 @@ If *parse_if(ParserState *ps)
         If *current = if_;
 
         Token *else_token;
-        while ((else_token = accept_keyword(ps, ELSE)) != NULL)
+        while ((else_token = accept_keyword(p, ELSE)) != NULL)
         {
 
-            If *next = parse_single_if(ps);
+            If *next = parse_single_if(p);
 
             if (next == NULL)
             {
-                Block *body = parse_block(ps, NULL);
+                Block *body = parse_block(p, NULL);
                 if (body != NULL)
                 {
                     current->next = new_if(NULL, body);
@@ -608,7 +617,7 @@ If *parse_if(ParserState *ps)
                 }
                 else
                 {
-                    parse_error(ps, "Else statements is missing");
+                    parse_error(p, "Else statements is missing");
                 }
             }
 
@@ -620,132 +629,132 @@ If *parse_if(ParserState *ps)
     return if_;
 }
 
-While *parse_while(ParserState *ps)
+While *parse_while(Parser *p)
 {
     While *while_ = NULL;
     Token *while_token;
 
-    if ((while_token = accept_keyword(ps, WHILE)) != NULL)
+    if ((while_token = accept_keyword(p, WHILE)) != NULL)
     {
-        destroy_token(expect_token(ps, 1, T_LPAREN));
-        Expression *condition = parse_expression(ps);
+        dispose_token(expect_token(p, 1, T_LPAREN));
+        Expression *condition = parse_expression(p);
         if (condition == NULL)
         {
-            parse_error(ps, "Condition is missing");
+            parse_error(p, "Condition is missing");
         }
-        destroy_token(expect_token(ps, 1, T_RPAREN));
+        dispose_token(expect_token(p, 1, T_RPAREN));
 
-        Block *body = parse_block(ps, NULL);
+        Block *body = parse_block(p, NULL);
         if (body == NULL)
         {
-            parse_error(ps, "Body is missing");
+            parse_error(p, "Body is missing");
         }
         while_ = new_while(condition, body);
-        destroy_token(while_token);
+        dispose_token(while_token);
     }
     return while_;
 }
 
-Assignment *parse_assignment(ParserState *ps, Symbol *symbol)
+Assignment *parse_assignment(Parser *p, Symbol *symbol)
 {
     Assignment *assignment = NULL;
     Token *assign_token = NULL;
-    if ((assign_token = accept_token(ps, 1, T_ASSIGN)) != NULL)
+    if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
     {
-        Expression *expression = parse_expression(ps);
+        Expression *expression = parse_expression(p);
         if (expression == NULL)
         {
-            parse_error(ps, "Expression required");
+            parse_error(p, "Expression required");
         }
         assignment = new_assignment(symbol->name, symbol->type_info, expression);
-        destroy_token(assign_token);
+        dispose_token(assign_token);
     }
     return assignment;
 }
 
-Node *parse_namebiguity(ParserState *ps)
+Node *parse_namebiguity(Parser *p)
 {
     Node *node = NULL;
     Token *name_token;
 
-    if ((name_token = accept_token(ps, 1, T_NAME)) != NULL)
+    if ((name_token = accept_token(p, 1, T_NAME)) != NULL)
     {
-        Symbol *symbol = lookup_symbol(ps->scope, name_token->buffer);
+        Symbol *symbol = lookup_symbol(p->scope, name_token->buffer);
 
         if (symbol != NULL)
         {
             if (symbol->symbol_type == SYMBOL_VARIABLE)
             {
-                Assignment *assignment = parse_assignment(ps, symbol);
+                Assignment *assignment = parse_assignment(p, symbol);
                 if (assignment == NULL)
                 {
-                    parse_error(ps, "Variable assignment missing");
+                    parse_error(p, "Variable assignment missing");
                 }
-                destroy_token(expect_token(ps, 1, T_SEMICOLON));
+                dispose_token(expect_token(p, 1, T_SEMICOLON));
                 node = new_node(N_ASSIGNMENT, assignment);
             }
             else if (symbol->symbol_type == SYMBOL_FUNCTION)
             {
-                Call *call = parse_call(ps, symbol);
+                Call *call = parse_call(p, symbol);
                 if (call == NULL)
                 {
-                    parse_error(ps, "Function call missing");
+                    parse_error(p, "Function call missing");
                 }
-                destroy_token(expect_token(ps, 1, T_SEMICOLON));
+                dispose_token(expect_token(p, 1, T_SEMICOLON));
                 node = new_node(N_CALL, call);
             }
             else
             {
-                parse_error(ps, "Invalid symbol");
+                parse_error(p, "Invalid symbol");
             }
         }
         else
         {
-            parse_error(ps, "Symbol not found");
+            parse_error(p, "Symbol not found");
         }
 
-        destroy_token(name_token);
+        dispose_token(name_token);
     }
     return node;
 }
 
-Node *parse_statement(ParserState *ps)
+Node *parse_statement(Parser *p)
 {
 
-    If *if_ = parse_if(ps);
+    If *if_ = parse_if(p);
     if (if_ != NULL)
     {
         return new_node(N_IF, if_);
     }
 
-    While *while_ = parse_while(ps);
+    While *while_ = parse_while(p);
     if (while_ != NULL)
     {
         return new_node(N_WHILE, while_);
     }
 
-    Function *function = parse_function(ps);
+    Function *function = parse_function(p);
     if (function != NULL)
     {
         return new_node(N_FUNCTION, function);
     }
 
-    if (ps->scope->function != NULL)
+    if (p->scope->function != NULL)
     {
-        Return *return_ = parse_return(ps);
+        Return *return_ = parse_return(p);
         if (return_ != NULL)
         {
             return new_node(N_RETURN, return_);
         }
     }
 
-    Variable *variable = parse_variable(ps);
+    Variable *variable = parse_variable(p);
     if (variable != NULL)
     {
         return new_node(N_VARIABLE, variable);
     }
 
-    Node *node = parse_namebiguity(ps);
+    Node *node = parse_namebiguity(p);
     if (node != NULL)
     {
         return node;
@@ -754,19 +763,19 @@ Node *parse_statement(ParserState *ps)
     return NULL;
 }
 
-Node *parse(ParserState *ps)
+Node *parse(Parser *p)
 {
 
-    Node *node = parse_statement(ps);
+    Node *node = parse_statement(p);
 
     Node *current = node;
     while (current)
     {
-        if (ps->visit_node != NULL)
+        if (p->visit_node != NULL)
         {
-            ps->visit_node(ps, current);
+            p->visit_node(p, current);
         }
-        current->next = parse_statement(ps);
+        current->next = parse_statement(p);
         current = current->next;
     }
 

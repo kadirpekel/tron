@@ -25,22 +25,24 @@
 #include "scope.h"
 #include "constants.h"
 
-typedef struct ParserState
+typedef struct Parser
 {
-    LexState *ls;
+    Lexer *l;
     Scope *scope;
     Token *token;
-    void (*visit_node)(struct ParserState *ps, Node *node);
+    void (*visit_node)(struct Parser *p, Node *node);
     int depth;
-} ParserState;
+} Parser;
 
-void init_parser(ParserState *ps, LexState *ls);
+Parser *new_parser(FILE *file);
+void dispose_parser(Parser *p);
 
-Expression *parse_term(ParserState *ps);
-Expression *parse_factor(ParserState *ps);
-Expression *parse_expression(ParserState *ps);
-Node *parse_statement(ParserState *ps);
-Expression *parse_binary_expression(ParserState *ps, int min_precedence);
-Expression *parse_unary_expression(ParserState *ps);
-Node *parse(ParserState *ps);
+Expression *parse_term(Parser *p);
+Expression *parse_factor(Parser *p);
+Expression *parse_expression(Parser *p);
+Node *parse_statement(Parser *p);
+Expression *parse_binary_expression(Parser *p, int min_precedence);
+Expression *parse_unary_expression(Parser *p);
+Node *parse(Parser *p);
+
 #endif

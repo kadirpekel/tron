@@ -199,7 +199,7 @@ char *node_to_string(Node *node)
     return result;
 }
 
-void destroy_node(Node *node)
+void dispose_node(Node *node)
 {
     if (!node)
     {

@@ -147,6 +147,6 @@ If *new_if(Expression *condition, Block *body);
 While *new_while(Expression *condition, Block *body);
 
 char *node_to_string(Node *node);
-void destroy_node(Node *node);
+void dispose_node(Node *node);
 
 #endif

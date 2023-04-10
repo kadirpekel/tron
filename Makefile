@@ -18,21 +18,22 @@ PROJECT = tron
 
 CC = gcc
 CPPFLAGS = -Wall -g
-CFLAGS = 
-LIBS = 
+CFLAGS = `llvm-config --cflags`
+LDFLAGS = `llvm-config --ldflags`
+LIBS = `llvm-config --libs`
 SRC_DIR = src
 OBJ_DIR = obj
 
 SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
-$(PROJECT): $(OBJ_DIR) | $(OBJ)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(OBJ) -o $(OBJ_DIR)/$(PROJECT) $(LIBS)
+$(PROJECT): $(OBJ)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(OBJ) -o $(OBJ_DIR)/$(PROJECT) $(LIBS)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 .PHONY : clean $(PROJECT)

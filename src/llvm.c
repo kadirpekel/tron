@@ -14,26 +14,29 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MLEXER_H_
-#define MLEXER_H_
-
 #include <stdio.h>
-#include "constants.h"
-#include "token.h"
+#include <stdlib.h>
 
-typedef struct Lexer
+#include "llvm.h"
+
+Llvm *new_llvm(char *module_name)
 {
-  FILE *file;
-  char buffer[MAX_BUFFER_SIZE];
-  int length;
-  int token_type;
-  char c;
-  int line;
-  int col;
-} Lexer;
+    Llvm *llvm = malloc(sizeof(Llvm));
+    if (module_name == NULL)
+    {
+        module_name = "default";
+    }
 
-Lexer *new_lexer(FILE *file);
-Token *lex(Lexer *l);
+    llvm->context = LLVMContextCreate();
+    llvm->module = LLVMModuleCreateWithNameInContext(module_name, llvm->context);
+    llvm->builder = LLVMCreateBuilderInContext(llvm->context);
+    return llvm;
+}
 
-void dispose_lexer(Lexer *l);
-#endif
+void dispose_llvm(Llvm *llvm)
+{
+    LLVMDisposeBuilder(llvm->builder);
+    LLVMDisposeModule(llvm->module);
+    LLVMContextDispose(llvm->context);
+    free(llvm);
+}

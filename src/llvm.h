@@ -1,7 +1,7 @@
 /******************************************************************************
  * Copyright [2023] [Kadir PEKEL]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License"},;
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -14,26 +14,27 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MLEXER_H_
-#define MLEXER_H_
+#ifndef MLLVM_H_
+#define MLLVM_H_
 
 #include <stdio.h>
-#include "constants.h"
-#include "token.h"
 
-typedef struct Lexer
+#include <llvm-c/Core.h>
+#include <llvm-c/Analysis.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Target.h>
+#include <llvm-c/Transforms/Scalar.h>
+#include <llvm-c/Transforms/Vectorize.h>
+#include <llvm-c/BitWriter.h>
+
+typedef struct Llvm
 {
-  FILE *file;
-  char buffer[MAX_BUFFER_SIZE];
-  int length;
-  int token_type;
-  char c;
-  int line;
-  int col;
-} Lexer;
+    LLVMContextRef context;
+    LLVMModuleRef module;
+    LLVMBuilderRef builder;
+} Llvm;
 
-Lexer *new_lexer(FILE *file);
-Token *lex(Lexer *l);
+Llvm *new_llvm(char *module_name);
+void dispose_llvm(Llvm *llvm);
 
-void dispose_lexer(Lexer *l);
 #endif

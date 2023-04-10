@@ -34,7 +34,7 @@ Token *new_token(TokenType token_type, char *buf, int len)
     return token;
 }
 
-void destroy_token(Token *token)
+void dispose_token(Token *token)
 {
     free(token->buffer);
     free(token);

@@ -21,10 +21,11 @@
 #include <string.h>
 
 #include "parser.h"
+#include "llvm.h"
 
-void visit_node(ParserState *ps, Node *node)
+void visit_node(Parser *p, Node *node)
 {
-  for (int i = 0; i < ps->depth; i++)
+  for (int i = 0; i < p->depth; i++)
   {
     printf("\t");
   }
@@ -35,17 +36,15 @@ void visit_node(ParserState *ps, Node *node)
 
 int main(int argc, char **argv)
 {
-  LexState ls;
-  init_lex_state(&ls, stdin);
 
-  ParserState ps;
-  init_parser(&ps, &ls);
+  Parser *p = new_parser(stdin);
+  Llvm *llvm = new_llvm("default");
 
-  ps.visit_node = visit_node;
+  p->visit_node = visit_node;
 
-  Node *node = parse(&ps);
+  Node *node = parse(p);
 
-  // Do sth with entire ast here if you like
-
-  destroy_node(node);
+  dispose_node(node);
+  dispose_parser(p);
+  dispose_llvm(llvm);
 }

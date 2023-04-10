@@ -23,291 +23,298 @@
 
 #include "lexer.h"
 
-void lexer_error(LexState *ls, char *msg)
+void lexer_error(Lexer *l, char *msg)
 {
   fprintf(stderr, "Lexer Error <%d:%d> %s\n",
-          ls->line,
-          ls->col,
+          l->line,
+          l->col,
           msg);
   exit(EXIT_FAILURE);
 }
 
-void next(LexState *ls)
+void next(Lexer *l)
 {
-  ls->c = fgetc(ls->file);
+  l->c = fgetc(l->file);
 
-  ls->col++;
-  if (ls->c == '\n')
+  l->col++;
+  if (l->c == '\n')
   {
-    ls->line++;
-    ls->col = 0;
+    l->line++;
+    l->col = 0;
   }
 }
 
-void accept(LexState *ls, TokenType type)
+void accept(Lexer *l, TokenType type)
 {
-  ls->buffer[ls->length++] = ls->c;
-  ls->token_type = type;
-  next(ls);
+  l->buffer[l->length++] = l->c;
+  l->token_type = type;
+  next(l);
 }
 
-Token *reset(LexState *ls)
+Token *reset(Lexer *l)
 {
-  Token *token = new_token(ls->token_type, ls->buffer, ls->length);
-  ls->length = 0;
+  Token *token = new_token(l->token_type, l->buffer, l->length);
+  l->length = 0;
   return token;
 }
 
-void init_lex_state(LexState *ls, FILE *file)
+Lexer *new_lexer(FILE *file)
 {
-  ls->length = 0;
-  ls->col = 0;
-  ls->line = 0;
-  ls->token_type = T_NOMATCH;
-  ls->file = file;
-  next(ls);
+  Lexer *l = malloc(sizeof(Lexer));
+  l->length = 0;
+  l->col = 0;
+  l->line = 0;
+  l->token_type = T_NOMATCH;
+  l->file = file;
+  next(l);
+  return l;
 }
 
-Token *lex(LexState *ls)
+void dispose_lexer(Lexer *l)
 {
-  if (ls->c == EOF)
-  {
-    accept(ls, T_EOF);
-  }
-  else if (ls->c == '(')
-  {
-    accept(ls, T_LPAREN);
-  }
-  else if (ls->c == ')')
-  {
-    accept(ls, T_RPAREN);
-  }
-  else if (ls->c == '[')
-  {
-    accept(ls, T_LBRACKET);
-  }
-  else if (ls->c == ']')
-  {
-    accept(ls, T_RBRACKET);
-  }
-  else if (ls->c == '{')
-  {
-    accept(ls, T_LBRACE);
-  }
-  else if (ls->c == '}')
-  {
-    accept(ls, T_RBRACE);
-  }
-  else if (ls->c == '.')
-  {
-    accept(ls, T_DOT);
-  }
-  else if (ls->c == ',')
-  {
-    accept(ls, T_COMMA);
-  }
-  else if (ls->c == ':')
-  {
-    accept(ls, T_COLON);
-  }
-  else if (ls->c == ';')
-  {
-    accept(ls, T_SEMICOLON);
-  }
-  else if (ls->c == '+')
-  {
-    accept(ls, T_ADD);
+  free(l);
+}
 
-    if (ls->c == '+')
-    {
-      accept(ls, T_INC);
-    }
-    else if (ls->c == '=')
-    {
-      accept(ls, T_ADD_ASSIGN);
-    }
-  }
-  else if (ls->c == '-')
+Token *lex(Lexer *l)
+{
+  if (l->c == EOF)
   {
-    accept(ls, T_SUB);
+    accept(l, T_EOF);
+  }
+  else if (l->c == '(')
+  {
+    accept(l, T_LPAREN);
+  }
+  else if (l->c == ')')
+  {
+    accept(l, T_RPAREN);
+  }
+  else if (l->c == '[')
+  {
+    accept(l, T_LBRACKET);
+  }
+  else if (l->c == ']')
+  {
+    accept(l, T_RBRACKET);
+  }
+  else if (l->c == '{')
+  {
+    accept(l, T_LBRACE);
+  }
+  else if (l->c == '}')
+  {
+    accept(l, T_RBRACE);
+  }
+  else if (l->c == '.')
+  {
+    accept(l, T_DOT);
+  }
+  else if (l->c == ',')
+  {
+    accept(l, T_COMMA);
+  }
+  else if (l->c == ':')
+  {
+    accept(l, T_COLON);
+  }
+  else if (l->c == ';')
+  {
+    accept(l, T_SEMICOLON);
+  }
+  else if (l->c == '+')
+  {
+    accept(l, T_ADD);
 
-    if (ls->c == '-')
+    if (l->c == '+')
     {
-      accept(ls, T_DEC);
+      accept(l, T_INC);
     }
-    else if (ls->c == '=')
+    else if (l->c == '=')
     {
-      accept(ls, T_SUB_ASSIGN);
+      accept(l, T_ADD_ASSIGN);
     }
   }
-  else if (ls->c == '*')
+  else if (l->c == '-')
   {
-    accept(ls, T_MUL);
+    accept(l, T_SUB);
 
-    if (ls->c == '=')
+    if (l->c == '-')
     {
-      accept(ls, T_MUL_ASSIGN);
+      accept(l, T_DEC);
+    }
+    else if (l->c == '=')
+    {
+      accept(l, T_SUB_ASSIGN);
     }
   }
-  else if (ls->c == '/')
+  else if (l->c == '*')
   {
-    accept(ls, T_DIV);
-    if (ls->c == '=')
-    {
-      accept(ls, T_DIV_ASSIGN);
-    }
-  }
-  else if (ls->c == '%')
-  {
-    accept(ls, T_REM);
+    accept(l, T_MUL);
 
-    if (ls->c == '=')
+    if (l->c == '=')
     {
-      accept(ls, T_REM_ASSIGN);
+      accept(l, T_MUL_ASSIGN);
     }
   }
-  else if (ls->c == '!')
+  else if (l->c == '/')
   {
-    accept(ls, T_LOGICAL_NOT);
+    accept(l, T_DIV);
+    if (l->c == '=')
+    {
+      accept(l, T_DIV_ASSIGN);
+    }
   }
-  else if (ls->c == '&')
+  else if (l->c == '%')
   {
-    accept(ls, T_AND);
+    accept(l, T_REM);
 
-    if (ls->c == '=')
+    if (l->c == '=')
     {
-      accept(ls, T_AND_ASSIGN);
+      accept(l, T_REM_ASSIGN);
     }
-    else if (ls->c == '&')
-    {
-      accept(ls, T_LOGICAL_AND);
-    }
-    else if (ls->c == '^')
-    {
-      accept(ls, T_BIT_CLEAR);
+  }
+  else if (l->c == '!')
+  {
+    accept(l, T_LOGICAL_NOT);
+  }
+  else if (l->c == '&')
+  {
+    accept(l, T_AND);
 
-      if (ls->c == '=')
+    if (l->c == '=')
+    {
+      accept(l, T_AND_ASSIGN);
+    }
+    else if (l->c == '&')
+    {
+      accept(l, T_LOGICAL_AND);
+    }
+    else if (l->c == '^')
+    {
+      accept(l, T_BIT_CLEAR);
+
+      if (l->c == '=')
       {
-        accept(ls, T_BIT_CLEAR_ASSIGN);
+        accept(l, T_BIT_CLEAR_ASSIGN);
       }
     }
   }
-  else if (ls->c == '|')
+  else if (l->c == '|')
   {
-    accept(ls, T_OR);
+    accept(l, T_OR);
 
-    if (ls->c == '=')
+    if (l->c == '=')
     {
-      accept(ls, T_OR_ASSIGN);
+      accept(l, T_OR_ASSIGN);
     }
-    else if (ls->c == '|')
+    else if (l->c == '|')
     {
-      accept(ls, T_LOGICAL_OR);
-    }
-  }
-  else if (ls->c == '^')
-  {
-    accept(ls, T_XOR);
-
-    if (ls->c == '=')
-    {
-      accept(ls, T_XOR_ASSIGN);
+      accept(l, T_LOGICAL_OR);
     }
   }
-  else if (ls->c == '<')
+  else if (l->c == '^')
   {
-    accept(ls, T_LT);
-    if (ls->c == '<')
-    {
-      accept(ls, T_SHL);
+    accept(l, T_XOR);
 
-      if (ls->c == '=')
+    if (l->c == '=')
+    {
+      accept(l, T_XOR_ASSIGN);
+    }
+  }
+  else if (l->c == '<')
+  {
+    accept(l, T_LT);
+    if (l->c == '<')
+    {
+      accept(l, T_SHL);
+
+      if (l->c == '=')
       {
-        accept(ls, T_SHL_ASSIGN);
+        accept(l, T_SHL_ASSIGN);
       }
     }
-    else if (ls->c == '=')
+    else if (l->c == '=')
     {
-      accept(ls, T_LTE);
+      accept(l, T_LTE);
     }
   }
-  else if (ls->c == '>')
+  else if (l->c == '>')
   {
-    accept(ls, T_GT);
+    accept(l, T_GT);
 
-    if (ls->c == '>')
+    if (l->c == '>')
     {
-      accept(ls, T_SHR);
+      accept(l, T_SHR);
 
-      if (ls->c == '=')
+      if (l->c == '=')
       {
-        accept(ls, T_SHR_ASSIGN);
+        accept(l, T_SHR_ASSIGN);
       }
     }
-    else if (ls->c == '=')
+    else if (l->c == '=')
     {
-      accept(ls, T_GTE);
+      accept(l, T_GTE);
     }
   }
-  else if (ls->c == '=')
+  else if (l->c == '=')
   {
-    accept(ls, T_ASSIGN);
+    accept(l, T_ASSIGN);
 
-    if (ls->c == '=')
+    if (l->c == '=')
     {
-      accept(ls, T_EQ);
+      accept(l, T_EQ);
     }
   }
-  else if (ls->c == '#')
+  else if (l->c == '#')
   {
-    accept(ls, T_COMMENT);
-    while (ls->c != '\n')
+    accept(l, T_COMMENT);
+    while (l->c != '\n')
     {
-      accept(ls, T_COMMENT);
+      accept(l, T_COMMENT);
     }
   }
-  else if (isspace(ls->c))
+  else if (isspace(l->c))
   {
-    accept(ls, T_SPACE);
-    while (isspace(ls->c))
+    accept(l, T_SPACE);
+    while (isspace(l->c))
     {
-      accept(ls, T_SPACE);
+      accept(l, T_SPACE);
     }
   }
-  else if (ls->c == '"')
+  else if (l->c == '"')
   {
-    next(ls);
-    while (ls->c != '"')
+    next(l);
+    while (l->c != '"')
     {
-      accept(ls, T_STRING);
+      accept(l, T_STRING);
     }
-    next(ls);
+    next(l);
   }
-  else if (isdigit(ls->c))
+  else if (isdigit(l->c))
   {
     TokenType token_type = T_INTEGER;
-    accept(ls, token_type);
-    while (isdigit(ls->c) || (token_type == T_INTEGER && ls->c == '.'))
+    accept(l, token_type);
+    while (isdigit(l->c) || (token_type == T_INTEGER && l->c == '.'))
     {
-      if (ls->c == '.')
+      if (l->c == '.')
       {
         token_type = T_FLOAT;
       }
-      accept(ls, token_type);
+      accept(l, token_type);
     };
   }
-  else if (isalpha(ls->c))
+  else if (isalpha(l->c))
   {
-    accept(ls, T_NAME);
-    while (isalpha(ls->c) || isdigit(ls->c) || ls->c == '_')
+    accept(l, T_NAME);
+    while (isalpha(l->c) || isdigit(l->c) || l->c == '_')
     {
-      accept(ls, T_NAME);
+      accept(l, T_NAME);
     };
   }
   else
   {
-    accept(ls, T_NOMATCH);
+    accept(l, T_NOMATCH);
   }
 
-  return reset(ls);
+  return reset(l);
 }

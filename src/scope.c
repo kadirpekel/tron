@@ -96,7 +96,7 @@ Symbol *lookup_symbol(Scope *scope, char *name)
     return lookup_symbol(scope->parent, name);
 }
 
-void destroy_scope(Scope *scope)
+void dispose_scope(Scope *scope)
 {
     free(scope->symbol_table);
     free(scope);
