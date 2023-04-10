@@ -32,10 +32,11 @@ typedef struct Parser
     Scope *scope;
     Token *token;
     Backend *backend;
+    void *backend_state;
     int depth;
 } Parser;
 
-Parser *new_parser(FILE *file, Backend *backend);
+Parser *new_parser(FILE *file, Backend *backend, void *backend_state);
 void dispose_parser(Parser *p);
 
 Expression *parse_term(Parser *p);

@@ -35,7 +35,7 @@ typedef struct Llvm
     LLVMContextRef context;
     LLVMModuleRef module;
     LLVMBuilderRef builder;
-    Backend backend;
+    Backend *backend;
 } Llvm;
 
 Llvm *new_llvm();

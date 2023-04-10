@@ -19,40 +19,50 @@
 
 #include "llvm.h"
 
-void visit_variable(Variable *variable)
+void llvm_visit_variable(void *state, Variable *variable)
 {
     printf("Variable: %s\n", variable->name);
 }
 
-void visit_function(Function *function)
+void llvm_visit_function(void *state, Function *function)
 {
     printf("Function %s\n", function->name);
 }
 
-void visit_if(If *if_)
+void llvm_visit_if(void *state, If *if_)
 {
     printf("If\n");
 }
 
-void visit_while(While *while_)
+void llvm_visit_while(void *state, While *while_)
 {
     printf("While\n");
 }
 
-void visit_call(Call *call)
+void llvm_visit_call(void *state, Call *call)
 {
     printf("Call %s\n", call->name);
 }
 
-void visit_assignment(Assignment *assignment)
+void llvm_visit_assignment(void *state, Assignment *assignment)
 {
     printf("Assignment %s\n", assignment->name);
 }
 
-void visit_return(Return *return_)
+void llvm_visit_return(void *state, Return *return_)
 {
     printf("Return\n");
 }
+
+static Backend backend = {
+    .visit_variable = llvm_visit_variable,
+    .visit_assignment = llvm_visit_assignment,
+    .visit_call = llvm_visit_call,
+    .visit_function = llvm_visit_function,
+    .visit_return = llvm_visit_return,
+    .visit_while = llvm_visit_while,
+    .visit_if = llvm_visit_if,
+};
 
 Llvm *new_llvm()
 {
@@ -60,13 +70,7 @@ Llvm *new_llvm()
     llvm->context = LLVMContextCreate();
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->backend.visit_function = visit_function;
-    llvm->backend.visit_variable = visit_variable;
-    llvm->backend.visit_if = visit_if;
-    llvm->backend.visit_while = visit_while;
-    llvm->backend.visit_assignment = visit_assignment;
-    llvm->backend.visit_call = visit_call;
-    llvm->backend.visit_return = visit_return;
+    llvm->backend = &backend;
     return llvm;
 }
 

@@ -21,13 +21,12 @@
 #include <string.h>
 
 #include "parser.h"
-#include "backend.h"
 #include "llvm.h"
 
 int main(int argc, char **argv)
 {
   Llvm *llvm = new_llvm();
-  Parser *p = new_parser(stdin, &llvm->backend);
+  Parser *p = new_parser(stdin, llvm->backend, &llvm);
   dispose_node(parse(p));
   dispose_parser(p);
   dispose_llvm(llvm);
