@@ -774,28 +774,28 @@ Node *parse(Parser *p)
     {
         if (p->backend != NULL)
         {
-            switch (node->node_type)
+            switch (current->node_type)
             {
             case N_VARIABLE:
-                p->backend->visit_variable((Variable *)node->data);
+                p->backend->visit_variable((Variable *)current->data);
                 break;
             case N_FUNCTION:
-                p->backend->visit_function((Function *)node->data);
+                p->backend->visit_function((Function *)current->data);
                 break;
             case N_IF:
-                p->backend->visit_if((If *)node->data);
+                p->backend->visit_if((If *)current->data);
                 break;
             case N_WHILE:
-                p->backend->visit_while((While *)node->data);
+                p->backend->visit_while((While *)current->data);
                 break;
             case N_CALL:
-                p->backend->visit_call((Call *)node->data);
+                p->backend->visit_call((Call *)current->data);
                 break;
             case N_ASSIGNMENT:
-                p->backend->visit_assignment((Assignment *)node->data);
+                p->backend->visit_assignment((Assignment *)current->data);
                 break;
             case N_RETURN:
-                p->backend->visit_return((Return *)node->data);
+                p->backend->visit_return((Return *)current->data);
                 break;
             default:
                 break;
