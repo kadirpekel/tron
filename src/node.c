@@ -150,6 +150,19 @@ Block *new_block(Node *statements)
     block->statements = statements;
     return block;
 }
+void dispose_node(Node *node)
+{
+    if (!node)
+    {
+        return;
+    }
+
+    // Check type of node and free associated resources accordingly
+
+    free(node->data);
+    free(node);
+}
+
 char *node_to_string(Node *node)
 {
     char *nodeTypeName;
@@ -197,17 +210,4 @@ char *node_to_string(Node *node)
     result = (char *)malloc(buffer_size + 1); // +1 for the null-terminator
     snprintf(result, buffer_size + 1, "NODE: %s", nodeTypeName);
     return result;
-}
-
-void dispose_node(Node *node)
-{
-    if (!node)
-    {
-        return;
-    }
-
-    // Check type of node and free associated resources accordingly
-
-    free(node->data);
-    free(node);
 }

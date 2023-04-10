@@ -19,11 +19,39 @@
 
 #include "llvm.h"
 
-void visit(Node *node)
+void visit_variable(Variable *variable)
 {
-    char *nodeString = node_to_string(node);
-    printf("%s\n", nodeString);
-    free(nodeString);
+    printf("Variable: %s\n", variable->name);
+}
+
+void visit_function(Function *function)
+{
+    printf("Function %s\n", function->name);
+}
+
+void visit_if(If *if_)
+{
+    printf("If\n");
+}
+
+void visit_while(While *while_)
+{
+    printf("While\n");
+}
+
+void visit_call(Call *call)
+{
+    printf("Call %s\n", call->name);
+}
+
+void visit_assignment(Assignment *assignment)
+{
+    printf("Assignment %s\n", assignment->name);
+}
+
+void visit_return(Return *return_)
+{
+    printf("Return\n");
 }
 
 Llvm *new_llvm()
@@ -32,7 +60,13 @@ Llvm *new_llvm()
     llvm->context = LLVMContextCreate();
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->backend.visit = visit;
+    llvm->backend.visit_function = visit_function;
+    llvm->backend.visit_variable = visit_variable;
+    llvm->backend.visit_if = visit_if;
+    llvm->backend.visit_while = visit_while;
+    llvm->backend.visit_assignment = visit_assignment;
+    llvm->backend.visit_call = visit_call;
+    llvm->backend.visit_return = visit_return;
     return llvm;
 }
 

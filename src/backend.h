@@ -21,7 +21,13 @@
 
 typedef struct Backend
 {
-    void (*visit)(Node *node);
+    void (*visit_variable)(Variable *variable);
+    void (*visit_call)(Call *call);
+    void (*visit_function)(Function *function);
+    void (*visit_while)(While *while_);
+    void (*visit_if)(If *if_);
+    void (*visit_return)(Return *return_);
+    void (*visit_assignment)(Assignment *assignment_);
 } Backend;
 
 #endif
