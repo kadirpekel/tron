@@ -19,17 +19,20 @@
 
 #include "llvm.h"
 
-Llvm *new_llvm(char *module_name)
+void visit(Node *node)
+{
+    char *nodeString = node_to_string(node);
+    printf("%s\n", nodeString);
+    free(nodeString);
+}
+
+Llvm *new_llvm()
 {
     Llvm *llvm = malloc(sizeof(Llvm));
-    if (module_name == NULL)
-    {
-        module_name = "default";
-    }
-
     llvm->context = LLVMContextCreate();
-    llvm->module = LLVMModuleCreateWithNameInContext(module_name, llvm->context);
+    llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
+    llvm->backend.visit = visit;
     return llvm;
 }
 

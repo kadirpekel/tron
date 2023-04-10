@@ -21,30 +21,14 @@
 #include <string.h>
 
 #include "parser.h"
+#include "backend.h"
 #include "llvm.h"
-
-void visit_node(Parser *p, Node *node)
-{
-  for (int i = 0; i < p->depth; i++)
-  {
-    printf("\t");
-  }
-  char *nodeString = node_to_string(node);
-  printf("%s\n", nodeString);
-  free(nodeString);
-}
 
 int main(int argc, char **argv)
 {
-
-  Parser *p = new_parser(stdin);
-  Llvm *llvm = new_llvm("default");
-
-  p->visit_node = visit_node;
-
-  Node *node = parse(p);
-
-  dispose_node(node);
+  Llvm *llvm = new_llvm();
+  Parser *p = new_parser(stdin, &llvm->backend);
+  dispose_node(parse(p));
   dispose_parser(p);
   dispose_llvm(llvm);
 }
