@@ -65,11 +65,10 @@ Call *new_call(char *name, TypeInfo *type_info, Expression *expression)
     return call;
 }
 
-Expression *new_expression(char *op, Expression *left, Expression *right, Node *node, TypeInfo *type_info)
+Expression *new_expression(Token *token, Expression *left, Expression *right, Node *node, TypeInfo *type_info)
 {
     Expression *expression = malloc(sizeof(Expression));
-    expression->op = malloc((strlen(op) + 1) * sizeof(char));
-    strcpy(expression->op, op);
+    expression->token = token;
     expression->left = left;
     expression->right = right;
     expression->node = node;
@@ -146,15 +145,128 @@ Block *new_block(Node *statements)
     block->statements = statements;
     return block;
 }
-void dispose_node(Node *node)
+
+void dispose_variable(Variable *variable)
+{
+    // Free associated resources up here
+
+    free(variable);
+}
+
+void dispose_expression(Expression *expression)
+{
+    // Free associated resources up here
+
+    free(expression);
+}
+
+void dispose_integer(Integer *integer)
+{
+    // Free associated resources up here
+
+    free(integer);
+}
+
+void dispose_float(Float *float_)
+{
+    // Free associated resources up here
+
+    free(float_);
+}
+
+void dispose_assignment(Assignment *assignment)
+{
+    // Free associated resources up here
+
+    free(assignment);
+}
+
+void dispose_call(Call *call)
+{
+    // Free associated resources up here
+
+    free(call);
+}
+
+void dispose_function(Function *function)
+{
+    // Free associated resources up here
+
+    free(function);
+}
+
+void dispose_return(Return *return_)
+{
+    // Free associated resources up here
+
+    free(return_);
+}
+void dispose_if(If *if_)
+{
+    // Free associated resources up here
+
+    free(if_);
+}
+void dispose_while(While *while_)
+{
+    // Free associated resources up here
+
+    free(while_);
+}
+
+void dispose_one(Node *node)
 {
     if (!node)
     {
         return;
     }
 
-    // Check type of node and free associated resources accordingly
+    switch (node->node_type)
+    {
+    case N_VARIABLE:
+        dispose_variable((Variable *)node->data);
+        break;
+    case N_EXPRESSION:
+        dispose_expression((Expression *)node->data);
+        break;
+    case N_INTEGER:
+        dispose_integer((Integer *)node->data);
+        break;
+    case N_FLOAT:
+        dispose_float((Float *)node->data);
+        break;
+    case N_ASSIGNMENT:
+        dispose_assignment((Assignment *)node->data);
+        break;
+    case N_CALL:
+        dispose_call((Call *)node->data);
+        break;
+    case N_FUNCTION:
+        dispose_function((Function *)node->data);
+        break;
+    case N_RETURN:
+        dispose_return((Return *)node->data);
+        break;
+    case N_IF:
+        dispose_if((If *)node->data);
+        break;
+    case N_WHILE:
+        dispose_while((While *)node->data);
+        break;
+    default:
+        fprintf(stderr, "Unexpected node type");
+        exit(EXIT_FAILURE);
+    }
 
-    free(node->data);
     free(node);
+}
+
+void dispose_node(Node *node)
+{
+    Node *current = node;
+    while (current)
+    {
+        dispose_one(current);
+        current = current->next;
+    }
 }

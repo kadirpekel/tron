@@ -19,9 +19,10 @@
 
 int main(int argc, char **argv)
 {
-  Parser *p = new_parser(stdin);
+  FILE *file = fopen(argv[0], "r");
+
+  Parser *p = new_parser(file);
   Node *ast = parse(p);
-  dispose_parser(p);
 
   Llvm *llvm = new_llvm();
 
@@ -30,4 +31,6 @@ int main(int argc, char **argv)
 
   dispose_llvm(llvm);
   dispose_node(ast);
+  dispose_parser(p);
+  fclose(file);
 }

@@ -232,12 +232,11 @@ Expression *parse_unary_expression(Parser *p)
             parse_error(p, "Operand is missing");
         }
         Expression *expression = new_expression(
-            opToken->buffer,
+            opToken,
             operand,
             NULL,
             NULL,
             operand->type_info);
-        dispose_token(opToken);
         return expression;
     }
 
@@ -273,8 +272,7 @@ Expression *parse_binary_expression(Parser *p, int min_precedence)
                     parse_error(p, "Expected expression after binary operator");
                 }
 
-                left = new_expression(op_token->buffer, left, right, NULL, left->type_info);
-                dispose_token(op_token);
+                left = new_expression(op_token, left, right, NULL, left->type_info);
                 goto end;
             }
         }
@@ -325,7 +323,7 @@ Expression *parse_factor(Parser *p)
             if (leaf_token->token_type == T_INTEGER)
             {
                 expression = new_expression(
-                    leaf_token->buffer,
+                    leaf_token,
                     NULL,
                     NULL,
                     new_node(N_INTEGER, new_integer(atoi(leaf_token->buffer))),
@@ -334,7 +332,7 @@ Expression *parse_factor(Parser *p)
             else if (leaf_token->token_type == T_FLOAT)
             {
                 expression = new_expression(
-                    leaf_token->buffer,
+                    leaf_token,
                     NULL,
                     NULL,
                     new_node(N_FLOAT, new_float(atof(leaf_token->buffer))),
@@ -353,7 +351,7 @@ Expression *parse_factor(Parser *p)
                             parse_error(p, "Function call missing");
                         }
                         expression = new_expression(
-                            leaf_token->buffer,
+                            leaf_token,
                             NULL,
                             NULL,
                             new_node(N_CALL, call),
@@ -362,7 +360,7 @@ Expression *parse_factor(Parser *p)
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
                         expression = new_expression(
-                            leaf_token->buffer,
+                            leaf_token,
                             NULL,
                             NULL,
                             new_node(N_NAME, new_name(leaf_token->buffer)),
@@ -378,7 +376,6 @@ Expression *parse_factor(Parser *p)
                     parse_error(p, "Symbol not found");
                 }
             }
-            dispose_token(leaf_token);
         }
     }
     return expression;

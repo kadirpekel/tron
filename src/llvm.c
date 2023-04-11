@@ -36,34 +36,150 @@ LLVMTypeRef get_llvm_type(Llvm *llvm, TypeInfo *type_info)
     return var_type;
 }
 
+LLVMValueRef llvm_visit_integer(Llvm *llvm, Integer *integer)
+{
+    return LLVMConstInt(LLVMInt32TypeInContext(llvm->context), integer->value, 0);
+}
+
+LLVMValueRef llvm_visit_float(Llvm *llvm, Float *floating_point)
+{
+    return LLVMConstReal(LLVMFloatTypeInContext(llvm->context), floating_point->value);
+}
+
+LLVMValueRef llvm_visit_call_expression(Llvm *llvm, Call *call)
+{
+    LLVMValueRef callee = LLVMGetNamedFunction(llvm->module, call->name);
+    return LLVMBuildCall2(llvm->builder, LLVMTypeOf(callee), callee, NULL, 0, call->name);
+}
+
+LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
+{
+    LLVMValueRef var_ptr = LLVMGetNamedGlobal(llvm->module, name->value);
+    if (var_ptr == NULL)
+    {
+        fprintf(stderr, "Variable not found: %s\n", name->value);
+        exit(EXIT_FAILURE);
+    }
+
+    LLVMTypeRef var_type = LLVMGetElementType(LLVMTypeOf(var_ptr));
+    return LLVMBuildLoad2(llvm->builder, var_type, var_ptr, name->value);
+}
+
+LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
+{
+
+    if (expression == NULL)
+    {
+        return NULL;
+    }
+
+    LLVMValueRef left = llvm_visit_expression(llvm, expression->left);
+    LLVMValueRef right = llvm_visit_expression(llvm, expression->right);
+
+    LLVMValueRef result;
+
+    if (left != NULL && right != NULL)
+    {
+        printf("%d \n", expression->token->token_type);
+        // Both left and right set so this is a binary expression
+        switch (expression->token->token_type)
+        {
+        case T_ADD:
+            result = LLVMBuildAdd(llvm->builder, left, right, "add");
+            break;
+        case T_SUB:
+            result = LLVMBuildSub(llvm->builder, left, right, "sub");
+            break;
+        case T_MUL:
+            result = LLVMBuildMul(llvm->builder, left, right, "mul");
+            break;
+        case T_DIV:
+            result = LLVMBuildSDiv(llvm->builder, left, right, "sdiv");
+            break;
+        default:
+            fprintf(stderr, "Invalid expression\n");
+            exit(EXIT_FAILURE);
+            break;
+        }
+    }
+    else
+    {
+        if (left != NULL)
+        {
+            // Only left expression set so this is left to right unary expression
+            result = NULL;
+        }
+        else if (right != NULL)
+        {
+            // Only right expression set so this is right to left unary expression
+            result = NULL;
+        }
+        else
+        {
+            // This is a leaf expression where it can be either:
+            // constant literal (int, float)
+            // function call
+            // variable name
+
+            Node *node = expression->node;
+            switch (node->node_type)
+            {
+            case N_INTEGER:
+                result = llvm_visit_integer(llvm, (Integer *)node->data);
+                break;
+            case N_FLOAT:
+                result = llvm_visit_float(llvm, (Float *)node->data);
+                break;
+            case N_CALL:
+                result = llvm_visit_call_expression(llvm, (Call *)node->data);
+                break;
+            case N_NAME:
+                result = llvm_visit_name(llvm, (Name *)node->data);
+                break;
+            default:
+                fprintf(stderr, "Unsupported node type in this context");
+                exit(EXIT_FAILURE);
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
 void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
     LLVMValueRef current_function = (LLVMValueRef)llvm->function;
     LLVMTypeRef var_type = get_llvm_type(llvm, variable->type_info);
 
+    LLVMValueRef allocated_var;
+
     if (current_function != NULL)
     {
         LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(current_function);
-        LLVMBuilderRef tmp_builder = LLVMCreateBuilderInContext(llvm->context);
-
-        LLVMValueRef first_instr = LLVMGetFirstInstruction(entry_block);
-        if (first_instr)
-        {
-            LLVMPositionBuilderBefore(tmp_builder, first_instr);
-        }
-        else
-        {
-            LLVMPositionBuilderAtEnd(tmp_builder, entry_block);
-        }
-
-        LLVMBuildAlloca(tmp_builder, var_type, variable->name);
-        LLVMDisposeBuilder(tmp_builder);
+        LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
+        allocated_var = LLVMBuildAlloca(llvm->builder, var_type, variable->name);
     }
     else
     {
-        LLVMValueRef global_var = LLVMAddGlobal(llvm->module, var_type, variable->name);
-        LLVMSetInitializer(global_var, LLVMConstInt(var_type, 0, 0));
-        LLVMSetLinkage(global_var, LLVMExternalLinkage);
+        allocated_var = LLVMAddGlobal(llvm->module, var_type, variable->name);
+        LLVMSetLinkage(allocated_var, LLVMExternalLinkage);
+    }
+    if (variable->expression)
+    {
+        LLVMValueRef expr_value = llvm_visit_expression(llvm, variable->expression);
+        if (current_function != NULL)
+        {
+            LLVMBuildStore(llvm->builder, expr_value, allocated_var);
+        }
+        else
+        {
+            LLVMSetInitializer(allocated_var, LLVMConstInt(var_type, LLVMConstIntGetZExtValue(expr_value), 0));
+        }
+    }
+    else
+    {
+        LLVMSetInitializer(allocated_var, LLVMConstInt(var_type, 0, 0));
     }
 }
 
@@ -93,30 +209,30 @@ void llvm_visit_function(Llvm *llvm, Function *function)
 
 void llvm_visit_if(Llvm *llvm, If *if_)
 {
-    printf("If\n");
+    printf("If - Not Implemented Yet\n");
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
-    printf("While\n");
+    printf("While - Not Implemented Yet\n");
 }
 
 void llvm_visit_call(Llvm *llvm, Call *call)
 {
-    printf("Call %s\n", call->name);
+    printf("Call %s - Not Implemented Yet\n", call->name);
 }
 
 void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
 {
-    printf("Assignment %s\n", assignment->name);
+    printf("Assignment %s - Not Implemented Yet\n", assignment->name);
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
 {
-    printf("Return\n");
+    printf("Return - Not Implemented Yet\n");
 }
 
-void llvm_visit(Llvm *llvm, Node *node)
+void llvm_visit_statement(Llvm *llvm, Node *node)
 {
     switch (node->node_type)
     {
@@ -148,6 +264,16 @@ void llvm_visit(Llvm *llvm, Node *node)
     }
 }
 
+void llvm_visit(Llvm *llvm, Node *node)
+{
+    Node *current = node;
+    while (current)
+    {
+        llvm_visit_statement(llvm, current);
+        current = current->next;
+    }
+}
+
 Llvm *new_llvm()
 {
     Llvm *llvm = malloc(sizeof(Llvm));
@@ -159,9 +285,7 @@ Llvm *new_llvm()
 
 void llvm_dump(Llvm *llvm, FILE *out)
 {
-    char *ir = LLVMPrintModuleToString(llvm->module);
-    fprintf(out, "%s", ir);
-    LLVMDisposeMessage(ir);
+    LLVMDumpModule(llvm->module);
 }
 
 void dispose_llvm(Llvm *llvm)

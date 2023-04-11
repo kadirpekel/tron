@@ -38,7 +38,6 @@ typedef enum NodeType
     N_CALL,
     N_RETURN,
     N_BLOCK,
-    N_TYPEINFO,
     N_IF,
     N_WHILE,
     N_FLOAT,
@@ -73,7 +72,7 @@ typedef struct Name
 
 typedef struct Expression
 {
-    char *op;
+    Token *token;
     struct Expression *next;
     struct Expression *left;
     struct Expression *right;
@@ -134,7 +133,7 @@ void dispose_node(Node *node);
 Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
-Expression *new_expression(char *op, Expression *left, Expression *right, Node *node, TypeInfo *type_info);
+Expression *new_expression(Token *token, Expression *left, Expression *right, Node *node, TypeInfo *type_info);
 Integer *new_integer(int value);
 Float *new_float(float value);
 Name *new_name(char *value);
