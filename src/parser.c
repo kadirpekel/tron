@@ -15,12 +15,8 @@
  ******************************************************************************/
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdarg.h>
-#include <ctype.h>
-#include <stdbool.h>
 
 #include "parser.h"
 
@@ -775,32 +771,7 @@ Node *parse(Parser *p)
     {
         if (p->backend != NULL)
         {
-            switch (current->node_type)
-            {
-            case N_VARIABLE:
-                p->backend->visit_variable(p->backend_state, (Variable *)current->data);
-                break;
-            case N_FUNCTION:
-                p->backend->visit_function(p->backend_state, (Function *)current->data);
-                break;
-            case N_IF:
-                p->backend->visit_if(p->backend_state, (If *)current->data);
-                break;
-            case N_WHILE:
-                p->backend->visit_while(p->backend_state, (While *)current->data);
-                break;
-            case N_CALL:
-                p->backend->visit_call(p->backend_state, (Call *)current->data);
-                break;
-            case N_ASSIGNMENT:
-                p->backend->visit_assignment(p->backend_state, (Assignment *)current->data);
-                break;
-            case N_RETURN:
-                p->backend->visit_return(p->backend_state, (Return *)current->data);
-                break;
-            default:
-                break;
-            }
+            p->backend->visit(p->backend_state, current);
         }
         current->next = parse_statement(p);
         current = current->next;

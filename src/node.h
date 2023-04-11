@@ -17,8 +17,6 @@
 #ifndef MNODE_H_
 #define MNODE_H_
 
-#include <stdio.h>
-
 #include "assert.h"
 #include "token.h"
 #include "type.h"

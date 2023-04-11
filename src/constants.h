@@ -17,8 +17,6 @@
 #ifndef MCONSTANTS_H_
 #define MCONSTANTS_H_
 
-#include <stdio.h>
-
 #define MAX_BUFFER_SIZE 4096
 
 #define IF "if"

@@ -17,7 +17,6 @@
 #ifndef MTOKEN_H_
 #define MTOKEN_H_
 
-#include <stdio.h>
 #include "type.h"
 
 /*

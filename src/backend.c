@@ -14,38 +14,17 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MSCOPE_H_
-#define MSCOPE_H_
+#include <stdlib.h>
+#include "backend.h"
 
-#include "node.h"
-
-#define SYMBOL_TABLE_SIZE 1024
-
-typedef enum SymbolType
+Backend *new_backend(void (*visit)(void *state, Node *node))
 {
-    SYMBOL_VARIABLE = 0,
-    SYMBOL_FUNCTION = 1,
-    SYMBOL_TYPE = 2
-} SymbolType;
+    Backend *backend = malloc(sizeof(Backend));
+    backend->visit = visit;
+    return backend;
+}
 
-typedef struct Symbol
+void dispose_backend(Backend *backend)
 {
-    char *name;
-    TypeInfo *type_info;
-    SymbolType symbol_type;
-    struct Symbol *next;
-} Symbol;
-
-typedef struct Scope
-{
-    struct Scope *parent;
-    Symbol **symbol_table;
-    Function *function;
-} Scope;
-
-Scope *new_scope(Scope *parent, Function *function);
-int insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
-Symbol *lookup_symbol(Scope *scope, char *name);
-void dispose_scope(Scope *scope);
-
-#endif
+    free(backend);
+}

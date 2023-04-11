@@ -14,12 +14,6 @@
  * limitations under the License.
  ******************************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <string.h>
-
 #include "parser.h"
 #include "llvm.h"
 

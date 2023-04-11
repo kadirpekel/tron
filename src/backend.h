@@ -21,13 +21,10 @@
 
 typedef struct Backend
 {
-    void (*visit_variable)(void *state, Variable *variable);
-    void (*visit_call)(void *state, Call *call);
-    void (*visit_function)(void *state, Function *function);
-    void (*visit_while)(void *state, While *while_);
-    void (*visit_if)(void *state, If *if_);
-    void (*visit_return)(void *state, Return *return_);
-    void (*visit_assignment)(void *state, Assignment *assignment_);
+    void (*visit)(void *state, Node *node);
 } Backend;
 
 #endif
+
+Backend *new_backend(void (*visit)(void *state, Node *node));
+void dispose_backend(Backend *backend);

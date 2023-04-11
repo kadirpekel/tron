@@ -14,14 +14,13 @@
  * limitations under the License.
  ******************************************************************************/
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "llvm.h"
 
 void llvm_visit_variable(void *state, Variable *variable)
 {
-    printf("Variable: %s\n", variable->name);
+    printf("Variable %s\n", variable->name);
 }
 
 void llvm_visit_function(void *state, Function *function)
@@ -54,15 +53,35 @@ void llvm_visit_return(void *state, Return *return_)
     printf("Return\n");
 }
 
-static Backend backend = {
-    .visit_variable = llvm_visit_variable,
-    .visit_assignment = llvm_visit_assignment,
-    .visit_call = llvm_visit_call,
-    .visit_function = llvm_visit_function,
-    .visit_return = llvm_visit_return,
-    .visit_while = llvm_visit_while,
-    .visit_if = llvm_visit_if,
-};
+void llvm_visit(void *state, Node *node)
+{
+    switch (node->node_type)
+    {
+    case N_VARIABLE:
+        llvm_visit_variable(state, (Variable *)node->data);
+        break;
+    case N_FUNCTION:
+        llvm_visit_function(state, (Function *)node->data);
+        break;
+    case N_IF:
+        llvm_visit_if(state, (If *)node->data);
+        break;
+    case N_WHILE:
+        llvm_visit_while(state, (While *)node->data);
+        break;
+    case N_CALL:
+        llvm_visit_call(state, (Call *)node->data);
+        break;
+    case N_ASSIGNMENT:
+        llvm_visit_assignment(state, (Assignment *)node->data);
+        break;
+    case N_RETURN:
+        llvm_visit_return(state, (Return *)node->data);
+        break;
+    default:
+        break;
+    }
+}
 
 Llvm *new_llvm()
 {
@@ -70,7 +89,7 @@ Llvm *new_llvm()
     llvm->context = LLVMContextCreate();
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->backend = &backend;
+    llvm->backend = new_backend(llvm_visit);
     return llvm;
 }
 
@@ -79,5 +98,6 @@ void dispose_llvm(Llvm *llvm)
     LLVMDisposeBuilder(llvm->builder);
     LLVMDisposeModule(llvm->module);
     LLVMContextDispose(llvm->context);
+    dispose_backend(llvm->backend);
     free(llvm);
 }

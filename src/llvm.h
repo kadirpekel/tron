@@ -17,8 +17,6 @@
 #ifndef MLLVM_H_
 #define MLLVM_H_
 
-#include <stdio.h>
-
 #include <llvm-c/Core.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/ExecutionEngine.h>
@@ -35,6 +33,7 @@ typedef struct Llvm
     LLVMContextRef context;
     LLVMModuleRef module;
     LLVMBuilderRef builder;
+    LLVMValueRef function;
     Backend *backend;
 } Llvm;
 
