@@ -25,7 +25,6 @@
 #include <llvm-c/Transforms/Vectorize.h>
 #include <llvm-c/BitWriter.h>
 
-#include "backend.h"
 #include "node.h"
 
 typedef struct Llvm
@@ -34,10 +33,11 @@ typedef struct Llvm
     LLVMModuleRef module;
     LLVMBuilderRef builder;
     LLVMValueRef function;
-    Backend *backend;
 } Llvm;
 
 Llvm *new_llvm();
+void llvm_visit(Llvm *llvm, Node *node);
+void llvm_dump(Llvm *llvm, FILE *out);
 void dispose_llvm(Llvm *llvm);
 
 #endif

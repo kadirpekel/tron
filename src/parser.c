@@ -31,12 +31,10 @@ void next_token(Parser *p)
     p->token = token;
 }
 
-Parser *new_parser(FILE *file, Backend *backend, void *backend_state)
+Parser *new_parser(FILE *file)
 {
     Parser *p = malloc(sizeof(Parser));
     p->l = new_lexer(file);
-    p->backend = backend;
-    p->backend_state = backend_state;
     p->scope = new_scope(NULL, NULL);
     p->depth = 0;
     next_token(p);
@@ -763,19 +761,12 @@ Node *parse_statement(Parser *p)
 
 Node *parse(Parser *p)
 {
-
     Node *node = parse_statement(p);
-
     Node *current = node;
     while (current)
     {
-        if (p->backend != NULL)
-        {
-            p->backend->visit(p->backend_state, current);
-        }
         current->next = parse_statement(p);
         current = current->next;
     }
-
     return node;
 }

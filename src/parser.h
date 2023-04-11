@@ -22,21 +22,17 @@
 #include "node.h"
 #include "scope.h"
 #include "constants.h"
-#include "backend.h"
 
 typedef struct Parser
 {
     Lexer *l;
     Scope *scope;
     Token *token;
-    Backend *backend;
-    void *backend_state;
     int depth;
 } Parser;
 
-Parser *new_parser(FILE *file, Backend *backend, void *backend_state);
+Parser *new_parser(FILE *file);
 void dispose_parser(Parser *p);
-
 Expression *parse_term(Parser *p);
 Expression *parse_factor(Parser *p);
 Expression *parse_expression(Parser *p);

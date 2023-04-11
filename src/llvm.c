@@ -18,67 +18,132 @@
 
 #include "llvm.h"
 
-void llvm_visit_variable(void *state, Variable *variable)
+LLVMTypeRef get_llvm_type(Llvm *llvm, TypeInfo *type_info)
 {
-    printf("Variable %s\n", variable->name);
+    LLVMTypeRef var_type;
+    switch (type_info->type)
+    {
+    case TYPE_INT:
+        var_type = LLVMInt32TypeInContext(llvm->context);
+        break;
+    case TYPE_FLOAT:
+        var_type = LLVMFloatTypeInContext(llvm->context);
+        break;
+    default:
+        fprintf(stderr, "Unsupported type for variable: %d\n", type_info->type);
+        exit(1);
+    }
+    return var_type;
 }
 
-void llvm_visit_function(void *state, Function *function)
+void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
-    printf("Function %s\n", function->name);
+    LLVMValueRef current_function = (LLVMValueRef)llvm->function;
+    LLVMTypeRef var_type = get_llvm_type(llvm, variable->type_info);
+
+    if (current_function != NULL)
+    {
+        LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(current_function);
+        LLVMBuilderRef tmp_builder = LLVMCreateBuilderInContext(llvm->context);
+
+        LLVMValueRef first_instr = LLVMGetFirstInstruction(entry_block);
+        if (first_instr)
+        {
+            LLVMPositionBuilderBefore(tmp_builder, first_instr);
+        }
+        else
+        {
+            LLVMPositionBuilderAtEnd(tmp_builder, entry_block);
+        }
+
+        LLVMBuildAlloca(tmp_builder, var_type, variable->name);
+        LLVMDisposeBuilder(tmp_builder);
+    }
+    else
+    {
+        LLVMValueRef global_var = LLVMAddGlobal(llvm->module, var_type, variable->name);
+        LLVMSetInitializer(global_var, LLVMConstInt(var_type, 0, 0));
+        LLVMSetLinkage(global_var, LLVMExternalLinkage);
+    }
 }
 
-void llvm_visit_if(void *state, If *if_)
+void llvm_visit_function(Llvm *llvm, Function *function)
+{
+    LLVMValueRef parent_function = llvm->function;
+
+    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), NULL, 0, 0);
+    LLVMValueRef llvm_function = LLVMAddFunction(llvm->module, function->name, func_type);
+
+    llvm->function = llvm_function;
+
+    LLVMBasicBlockRef entry_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, "entry");
+    LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
+
+    Node *stmt = function->body->statements;
+    while (stmt)
+    {
+        llvm_visit(llvm, stmt);
+        stmt = stmt->next;
+    }
+    LLVMValueRef ret_value = LLVMConstInt(LLVMInt32TypeInContext(llvm->context), 0, 0);
+    LLVMBuildRet(llvm->builder, ret_value);
+
+    llvm->function = parent_function;
+}
+
+void llvm_visit_if(Llvm *llvm, If *if_)
 {
     printf("If\n");
 }
 
-void llvm_visit_while(void *state, While *while_)
+void llvm_visit_while(Llvm *llvm, While *while_)
 {
     printf("While\n");
 }
 
-void llvm_visit_call(void *state, Call *call)
+void llvm_visit_call(Llvm *llvm, Call *call)
 {
     printf("Call %s\n", call->name);
 }
 
-void llvm_visit_assignment(void *state, Assignment *assignment)
+void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
 {
     printf("Assignment %s\n", assignment->name);
 }
 
-void llvm_visit_return(void *state, Return *return_)
+void llvm_visit_return(Llvm *llvm, Return *return_)
 {
     printf("Return\n");
 }
 
-void llvm_visit(void *state, Node *node)
+void llvm_visit(Llvm *llvm, Node *node)
 {
     switch (node->node_type)
     {
     case N_VARIABLE:
-        llvm_visit_variable(state, (Variable *)node->data);
+        llvm_visit_variable(llvm, (Variable *)node->data);
         break;
     case N_FUNCTION:
-        llvm_visit_function(state, (Function *)node->data);
+        llvm_visit_function(llvm, (Function *)node->data);
         break;
     case N_IF:
-        llvm_visit_if(state, (If *)node->data);
+        llvm_visit_if(llvm, (If *)node->data);
         break;
     case N_WHILE:
-        llvm_visit_while(state, (While *)node->data);
+        llvm_visit_while(llvm, (While *)node->data);
         break;
     case N_CALL:
-        llvm_visit_call(state, (Call *)node->data);
+        llvm_visit_call(llvm, (Call *)node->data);
         break;
     case N_ASSIGNMENT:
-        llvm_visit_assignment(state, (Assignment *)node->data);
+        llvm_visit_assignment(llvm, (Assignment *)node->data);
         break;
     case N_RETURN:
-        llvm_visit_return(state, (Return *)node->data);
+        llvm_visit_return(llvm, (Return *)node->data);
         break;
     default:
+        fprintf(stderr, "Unexpected node type: %d", node->node_type);
+        exit(EXIT_FAILURE);
         break;
     }
 }
@@ -89,8 +154,14 @@ Llvm *new_llvm()
     llvm->context = LLVMContextCreate();
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->backend = new_backend(llvm_visit);
     return llvm;
+}
+
+void llvm_dump(Llvm *llvm, FILE *out)
+{
+    char *ir = LLVMPrintModuleToString(llvm->module);
+    fprintf(out, "%s", ir);
+    LLVMDisposeMessage(ir);
 }
 
 void dispose_llvm(Llvm *llvm)
@@ -98,6 +169,5 @@ void dispose_llvm(Llvm *llvm)
     LLVMDisposeBuilder(llvm->builder);
     LLVMDisposeModule(llvm->module);
     LLVMContextDispose(llvm->context);
-    dispose_backend(llvm->backend);
     free(llvm);
 }

@@ -130,6 +130,7 @@ typedef struct Function
 } Function;
 
 Node *new_node(NodeType nodeType, void *data);
+void dispose_node(Node *node);
 Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
@@ -143,8 +144,5 @@ Return *new_return(Expression *expression);
 TypeInfo *new_type_info(Type type);
 If *new_if(Expression *condition, Block *body);
 While *new_while(Expression *condition, Block *body);
-
-char *node_to_string(Node *node);
-void dispose_node(Node *node);
 
 #endif

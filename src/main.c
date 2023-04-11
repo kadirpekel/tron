@@ -19,9 +19,15 @@
 
 int main(int argc, char **argv)
 {
-  Llvm *llvm = new_llvm();
-  Parser *p = new_parser(stdin, llvm->backend, &llvm);
-  dispose_node(parse(p));
+  Parser *p = new_parser(stdin);
+  Node *ast = parse(p);
   dispose_parser(p);
+
+  Llvm *llvm = new_llvm();
+
+  llvm_visit(llvm, ast);
+  llvm_dump(llvm, stdout);
+
   dispose_llvm(llvm);
+  dispose_node(ast);
 }
