@@ -19,7 +19,7 @@
 
 int main(int argc, char **argv)
 {
-  FILE *file = fopen(argv[0], "r");
+  FILE *file = fopen(argv[1], "r");
 
   Parser *p = new_parser(file);
   Node *ast = parse(p);
