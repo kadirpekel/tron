@@ -135,10 +135,14 @@ LLVMValueRef llvm_visit_float(Llvm *llvm, Float *floating_point)
     return LLVMConstReal(LLVMFloatTypeInContext(llvm->context), floating_point->value);
 }
 
-LLVMValueRef llvm_visit_call_expression(Llvm *llvm, Call *call)
+LLVMValueRef llvm_visit_call(Llvm *llvm, Call *call)
 {
-    LLVMValueRef callee = LLVMGetNamedFunction(llvm->module, call->name);
-    return LLVMBuildCall2(llvm->builder, LLVMTypeOf(callee), callee, NULL, 0, call->name);
+    LlvmSymbol *sym = find_in_stack(llvm, call->name);
+    if (sym == NULL)
+    {
+        fatal("Symbol not found: %s\n", call->name);
+    }
+    return LLVMBuildCall2(llvm->builder, sym->type, sym->value, NULL, 0, call->name);
 }
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
@@ -217,7 +221,7 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
                 result = llvm_visit_float(llvm, (Float *)node->data);
                 break;
             case N_CALL:
-                result = llvm_visit_call_expression(llvm, (Call *)node->data);
+                result = llvm_visit_call(llvm, (Call *)node->data);
                 break;
             case N_NAME:
                 result = llvm_visit_name(llvm, (Name *)node->data);
@@ -312,9 +316,10 @@ void llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function)
 
 void llvm_visit_function(Llvm *llvm, Function *function)
 {
-    LLVMTypeRef func_type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
-    LLVMValueRef llvm_function = LLVMAddFunction(llvm->module, function->name, func_type);
-    llvm_visit_block(llvm, function->body, llvm_function);
+    LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
+    LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
+    push_symbol(llvm, function->name, value, type);
+    llvm_visit_block(llvm, function->body, value);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
@@ -325,11 +330,6 @@ void llvm_visit_if(Llvm *llvm, If *if_)
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
     printf("While - Not Implemented Yet\n");
-}
-
-void llvm_visit_call(Llvm *llvm, Call *call)
-{
-    printf("Call %s - Not Implemented Yet\n", call->name);
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
