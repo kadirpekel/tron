@@ -27,12 +27,31 @@
 
 #include "node.h"
 
+typedef struct LlvmSymbol
+{
+    char *name;
+    LLVMValueRef value;
+    struct LlvmSymbol *next;
+} LlvmSymbol;
+
+typedef struct LlvmSymbolTable
+{
+    LlvmSymbol *head;
+} LlvmSymbolTable;
+
+typedef struct LlvmSymbolTableStack
+{
+    LLVMValueRef function;
+    LlvmSymbolTable *table;
+    struct LlvmSymbolTableStack *next;
+} LlvmSymbolTableStack;
+
 typedef struct Llvm
 {
     LLVMContextRef context;
     LLVMModuleRef module;
     LLVMBuilderRef builder;
-    LLVMValueRef function;
+    LlvmSymbolTableStack *stack;
 } Llvm;
 
 Llvm *new_llvm();

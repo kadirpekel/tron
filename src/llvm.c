@@ -15,8 +15,96 @@
  ******************************************************************************/
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "llvm.h"
+
+LlvmSymbolTable *new_llvm_symbol_table()
+{
+    LlvmSymbolTable *table = malloc(sizeof(LlvmSymbolTable));
+    table->head = NULL;
+    return table;
+}
+
+LlvmSymbolTableStack *new_llvm_symbol_table_stack(LLVMValueRef function)
+{
+    LlvmSymbolTableStack *stack = malloc(sizeof(LlvmSymbolTableStack));
+    stack->table = new_llvm_symbol_table();
+    stack->function = function;
+    stack->next = NULL;
+    return stack;
+}
+
+LLVMValueRef find_symbol(LlvmSymbolTable *table, char *name)
+{
+    for (LlvmSymbol *sym = table->head; sym != NULL; sym = sym->next)
+    {
+        if (strcmp(sym->name, name) == 0)
+        {
+            return sym->value;
+        }
+    }
+    return NULL;
+}
+
+void push_symbol(Llvm *llvm, char *name, LLVMValueRef value)
+{
+    if (find_symbol(llvm->stack->table, name) != NULL)
+    {
+        fatal("Symbol already defined in current stack");
+    }
+
+    LlvmSymbol *new_symbol = malloc(sizeof(LlvmSymbol));
+    new_symbol->name = strdup(name);
+    new_symbol->value = value;
+    new_symbol->next = llvm->stack->table->head;
+    llvm->stack->table->head = new_symbol;
+}
+
+void push_scope(Llvm *llvm, LLVMValueRef llvm_function)
+{
+    if (llvm_function == NULL && llvm->stack != NULL)
+    {
+        llvm_function = llvm->stack->function;
+    }
+
+    LlvmSymbolTableStack *new_stack = new_llvm_symbol_table_stack(llvm_function);
+    new_stack->next = llvm->stack;
+    llvm->stack = new_stack;
+}
+
+void dispose_llvm_symbol_table(LlvmSymbolTable *table)
+{
+    LlvmSymbol *sym = table->head;
+    while (sym != NULL)
+    {
+        LlvmSymbol *next = sym->next;
+        free(sym->name);
+        free(sym);
+        sym = next;
+    }
+}
+
+void pop_scope(Llvm *llvm)
+{
+    LlvmSymbolTableStack *top = llvm->stack;
+    llvm->stack = top->next;
+    dispose_llvm_symbol_table(top->table);
+    free(top);
+}
+
+LLVMValueRef find_in_stack(Llvm *llvm, char *name)
+{
+    for (LlvmSymbolTableStack *node = llvm->stack; node != NULL; node = node->next)
+    {
+        LLVMValueRef value = find_symbol(node->table, name);
+        if (value != NULL)
+        {
+            return value;
+        }
+    }
+    return NULL;
+}
 
 LLVMTypeRef get_llvm_type(Llvm *llvm, TypeInfo *type_info)
 {
@@ -137,7 +225,7 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
                 result = llvm_visit_name(llvm, (Name *)node->data);
                 break;
             default:
-                fprintf(stderr, "Unsupported node type in this context");
+                fprintf(stderr, "Unsupported node type in this context\n");
                 exit(EXIT_FAILURE);
                 break;
             }
@@ -149,7 +237,12 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
 
 void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
-    LLVMValueRef current_function = (LLVMValueRef)llvm->function;
+    LLVMValueRef current_function = NULL;
+    if (llvm->stack != NULL && llvm->stack->function)
+    {
+        current_function = llvm->stack->function;
+    }
+
     LLVMTypeRef var_type = get_llvm_type(llvm, variable->type_info);
 
     LLVMValueRef allocated_var;
@@ -165,6 +258,9 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
         allocated_var = LLVMAddGlobal(llvm->module, var_type, variable->name);
         LLVMSetLinkage(allocated_var, LLVMExternalLinkage);
     }
+
+    push_symbol(llvm, variable->name, allocated_var);
+
     if (variable->expression)
     {
         LLVMValueRef expr_value = llvm_visit_expression(llvm, variable->expression);
@@ -183,28 +279,20 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
     }
 }
 
-void llvm_visit_function(Llvm *llvm, Function *function)
+void llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function)
 {
-    LLVMValueRef parent_function = llvm->function;
-
-    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), NULL, 0, 0);
-    LLVMValueRef llvm_function = LLVMAddFunction(llvm->module, function->name, func_type);
-
-    llvm->function = llvm_function;
-
+    push_scope(llvm, llvm_function);
     LLVMBasicBlockRef entry_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
+    llvm_visit(llvm, block->statements);
+    pop_scope(llvm);
+}
 
-    Node *stmt = function->body->statements;
-    while (stmt)
-    {
-        llvm_visit(llvm, stmt);
-        stmt = stmt->next;
-    }
-    LLVMValueRef ret_value = LLVMConstInt(LLVMInt32TypeInContext(llvm->context), 0, 0);
-    LLVMBuildRet(llvm->builder, ret_value);
-
-    llvm->function = parent_function;
+void llvm_visit_function(Llvm *llvm, Function *function)
+{
+    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), NULL, 0, 0);
+    LLVMValueRef llvm_function = LLVMAddFunction(llvm->module, function->name, func_type);
+    llvm_visit_block(llvm, function->body, llvm_function);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
@@ -229,7 +317,8 @@ void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
 {
-    printf("Return - Not Implemented Yet\n");
+    LLVMValueRef ret_value = LLVMConstInt(LLVMInt32TypeInContext(llvm->context), 0, 0);
+    LLVMBuildRet(llvm->builder, ret_value);
 }
 
 void llvm_visit_statement(Llvm *llvm, Node *node)
@@ -258,7 +347,7 @@ void llvm_visit_statement(Llvm *llvm, Node *node)
         llvm_visit_return(llvm, (Return *)node->data);
         break;
     default:
-        fprintf(stderr, "Unexpected node type: %d", node->node_type);
+        fprintf(stderr, "Unexpected node type: %d\n", node->node_type);
         exit(EXIT_FAILURE);
         break;
     }
@@ -280,6 +369,7 @@ Llvm *new_llvm()
     llvm->context = LLVMContextCreate();
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
+    push_scope(llvm, NULL);
     return llvm;
 }
 
