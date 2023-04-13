@@ -1,1 +1,9 @@
-var foo = 3;
+var foo: int;
+
+func bar() {
+    var baz: float;
+    baz = 4.5;
+    return baz;
+}
+
+foo = 4;

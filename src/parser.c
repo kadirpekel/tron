@@ -389,7 +389,6 @@ Variable *parse_param(Parser *p)
     if ((name_token = accept_token(p, 1, T_NAME)) != NULL)
     {
         TypeInfo *type_info = NULL;
-        Expression *expression = NULL;
 
         Token *colon_token;
         if ((colon_token = accept_token(p, 1, T_COLON)) != NULL)
@@ -408,6 +407,8 @@ Variable *parse_param(Parser *p)
         }
 
         Token *assign_token;
+
+        Expression *expression = NULL;
         if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
         {
             expression = parse_expression(p);
@@ -417,13 +418,27 @@ Variable *parse_param(Parser *p)
             }
             dispose_token(assign_token);
         }
-
-        if (type_info->type == TYPE_INFER && expression == NULL)
+        else
         {
-            parse_error(p, "Variable needs assignment");
+            if (type_info->type == TYPE_INFER)
+            {
+                parse_error(p, "Variable needs assignment");
+            }
         }
 
-        param = new_variable(name_token->buffer, type_info, expression);
+        Assignment *assignment = NULL;
+        if (expression != NULL)
+        {
+            if (type_info->type != expression->type_info->type)
+            {
+                parse_error(p, "Variable type does not match with expression type");
+            }
+
+            assignment = new_assignment(name_token->buffer, type_info, expression);
+        }
+
+        param = new_variable(name_token->buffer, type_info, assignment);
+
         if (!insert_symbol(p->scope, param->name, SYMBOL_VARIABLE, param->type_info))
         {
             parse_error(p, "Symbol already exists");

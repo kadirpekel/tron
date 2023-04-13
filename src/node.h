@@ -93,20 +93,20 @@ typedef struct While
     Block *body;
 } While;
 
-typedef struct Variable
-{
-    char *name;
-    TypeInfo *type_info;
-    Expression *expression;
-    struct Variable *next;
-} Variable;
-
 typedef struct Assignment
 {
     char *name;
     TypeInfo *type_info;
     Expression *expression;
 } Assignment;
+
+typedef struct Variable
+{
+    char *name;
+    TypeInfo *type_info;
+    Assignment *assignment;
+    struct Variable *next;
+} Variable;
 
 typedef struct Call
 {
@@ -130,7 +130,7 @@ typedef struct Function
 
 Node *new_node(NodeType nodeType, void *data);
 void dispose_node(Node *node);
-Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression);
+Variable *new_variable(char *name, TypeInfo *type_info, Assignment *assignment);
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression);
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression);
 Expression *new_expression(Token *token, Expression *left, Expression *right, Node *node, TypeInfo *type_info);

@@ -235,6 +235,38 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
     return result;
 }
 
+int is_global_variable(LLVMValueRef value)
+{
+    return LLVMIsAGlobalValue(value) && LLVMGetGlobalParent(value);
+}
+
+void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
+{
+    LLVMValueRef allocated_var = find_in_stack(llvm, assignment->name);
+    if (allocated_var == NULL)
+    {
+        fatal("Symbol not found");
+    }
+
+    LLVMValueRef expr_value = llvm_visit_expression(llvm, assignment->expression);
+
+    if (is_global_variable(allocated_var))
+    {
+        if (LLVMIsAConstant(expr_value))
+        {
+            LLVMSetInitializer(allocated_var, expr_value);
+        }
+        else
+        {
+            fatal("Global variables must be initialized with a constant expression");
+        }
+    }
+    else
+    {
+        LLVMBuildStore(llvm->builder, expr_value, allocated_var);
+    }
+}
+
 void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
     LLVMValueRef current_function = NULL;
@@ -261,31 +293,23 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
 
     push_symbol(llvm, variable->name, allocated_var);
 
-    if (variable->expression)
+    if (variable->assignment)
     {
-        LLVMValueRef expr_value = llvm_visit_expression(llvm, variable->expression);
-        if (current_function != NULL)
-        {
-            LLVMBuildStore(llvm->builder, expr_value, allocated_var);
-        }
-        else
-        {
-            LLVMSetInitializer(allocated_var, LLVMConstInt(var_type, LLVMConstIntGetZExtValue(expr_value), 0));
-        }
-    }
-    else
-    {
-        LLVMSetInitializer(allocated_var, LLVMConstInt(var_type, 0, 0));
+        llvm_visit_assignment(llvm, variable->assignment);
     }
 }
 
 void llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function)
 {
-    push_scope(llvm, llvm_function);
+
     LLVMBasicBlockRef entry_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
-    llvm_visit(llvm, block->statements);
-    pop_scope(llvm);
+    if (block->statements != NULL)
+    {
+        push_scope(llvm, llvm_function);
+        llvm_visit(llvm, block->statements);
+        pop_scope(llvm);
+    }
 }
 
 void llvm_visit_function(Llvm *llvm, Function *function)
@@ -308,11 +332,6 @@ void llvm_visit_while(Llvm *llvm, While *while_)
 void llvm_visit_call(Llvm *llvm, Call *call)
 {
     printf("Call %s - Not Implemented Yet\n", call->name);
-}
-
-void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
-{
-    printf("Assignment %s - Not Implemented Yet\n", assignment->name);
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)

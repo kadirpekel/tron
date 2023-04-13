@@ -27,21 +27,13 @@ Node *new_node(NodeType nodeType, void *data)
     return node;
 }
 
-Variable *new_variable(char *name, TypeInfo *type_info, Expression *expression)
+Variable *new_variable(char *name, TypeInfo *type_info, Assignment *assignment)
 {
     Variable *variable = malloc(sizeof(Variable));
     variable->name = malloc((strlen(name) + 1) * sizeof(char));
     strcpy(variable->name, name);
-    variable->expression = expression;
-
-    if (type_info->type == TYPE_INFER)
-    {
-        variable->type_info = expression->type_info;
-    }
-    else
-    {
-        variable->type_info = type_info;
-    }
+    variable->assignment = assignment;
+    variable->type_info = type_info;
     return variable;
 }
 
