@@ -35,19 +35,19 @@ LlvmSymbolTableStack *new_llvm_symbol_table_stack(LLVMValueRef function)
     return stack;
 }
 
-LLVMValueRef find_symbol(LlvmSymbolTable *table, char *name)
+LlvmSymbol *find_symbol(LlvmSymbolTable *table, char *name)
 {
     for (LlvmSymbol *sym = table->head; sym != NULL; sym = sym->next)
     {
         if (strcmp(sym->name, name) == 0)
         {
-            return sym->value;
+            return sym;
         }
     }
     return NULL;
 }
 
-void push_symbol(Llvm *llvm, char *name, LLVMValueRef value)
+void push_symbol(Llvm *llvm, char *name, LLVMValueRef value, LLVMTypeRef type)
 {
     if (find_symbol(llvm->stack->table, name) != NULL)
     {
@@ -57,6 +57,7 @@ void push_symbol(Llvm *llvm, char *name, LLVMValueRef value)
     LlvmSymbol *new_symbol = malloc(sizeof(LlvmSymbol));
     new_symbol->name = strdup(name);
     new_symbol->value = value;
+    new_symbol->type = type;
     new_symbol->next = llvm->stack->table->head;
     llvm->stack->table->head = new_symbol;
 }
@@ -93,11 +94,11 @@ void pop_scope(Llvm *llvm)
     free(top);
 }
 
-LLVMValueRef find_in_stack(Llvm *llvm, char *name)
+LlvmSymbol *find_in_stack(Llvm *llvm, char *name)
 {
     for (LlvmSymbolTableStack *node = llvm->stack; node != NULL; node = node->next)
     {
-        LLVMValueRef value = find_symbol(node->table, name);
+        LlvmSymbol *value = find_symbol(node->table, name);
         if (value != NULL)
         {
             return value;
@@ -142,15 +143,12 @@ LLVMValueRef llvm_visit_call_expression(Llvm *llvm, Call *call)
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
 {
-
-    LLVMValueRef var_ptr = find_in_stack(llvm, name->value);
-    if (var_ptr == NULL)
+    LlvmSymbol *sym = find_in_stack(llvm, name->value);
+    if (sym == NULL)
     {
         fatal("Symbol not found: %s\n", name->value);
     }
-
-    LLVMTypeRef var_type = LLVMTypeOf(var_ptr);
-    return LLVMBuildLoad2(llvm->builder, var_type, var_ptr, name->value);
+    return LLVMBuildLoad2(llvm->builder, sym->type, sym->value, name->value);
 }
 
 LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
@@ -242,19 +240,19 @@ int is_global_variable(LLVMValueRef value)
 
 void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
 {
-    LLVMValueRef allocated_var = find_in_stack(llvm, assignment->name);
-    if (allocated_var == NULL)
+    LlvmSymbol *sym = find_in_stack(llvm, assignment->name);
+    if (sym == NULL)
     {
         fatal("Symbol not found");
     }
 
     LLVMValueRef expr_value = llvm_visit_expression(llvm, assignment->expression);
 
-    if (is_global_variable(allocated_var))
+    if (is_global_variable(sym->value))
     {
         if (LLVMIsAConstant(expr_value))
         {
-            LLVMSetInitializer(allocated_var, expr_value);
+            LLVMSetInitializer(sym->value, expr_value);
         }
         else
         {
@@ -263,7 +261,7 @@ void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
     }
     else
     {
-        LLVMBuildStore(llvm->builder, expr_value, allocated_var);
+        LLVMBuildStore(llvm->builder, expr_value, sym->value);
     }
 }
 
@@ -275,23 +273,23 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
         current_function = llvm->stack->function;
     }
 
-    LLVMTypeRef var_type = get_llvm_type(llvm, variable->type_info);
+    LLVMTypeRef type = get_llvm_type(llvm, variable->type_info);
 
-    LLVMValueRef allocated_var;
+    LLVMValueRef value;
 
     if (current_function != NULL)
     {
         LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(current_function);
         LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
-        allocated_var = LLVMBuildAlloca(llvm->builder, var_type, variable->name);
+        value = LLVMBuildAlloca(llvm->builder, type, variable->name);
     }
     else
     {
-        allocated_var = LLVMAddGlobal(llvm->module, var_type, variable->name);
-        LLVMSetLinkage(allocated_var, LLVMExternalLinkage);
+        value = LLVMAddGlobal(llvm->module, type, variable->name);
+        LLVMSetLinkage(value, LLVMExternalLinkage);
     }
 
-    push_symbol(llvm, variable->name, allocated_var);
+    push_symbol(llvm, variable->name, value, type);
 
     if (variable->assignment)
     {
@@ -386,6 +384,7 @@ Llvm *new_llvm()
 {
     Llvm *llvm = malloc(sizeof(Llvm));
     llvm->context = LLVMContextCreate();
+    // LLVMContextSetOpaquePointers(llvm->context, 0);
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
     push_scope(llvm, NULL);

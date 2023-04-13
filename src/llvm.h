@@ -31,6 +31,7 @@ typedef struct LlvmSymbol
 {
     char *name;
     LLVMValueRef value;
+    LLVMTypeRef type;
     struct LlvmSymbol *next;
 } LlvmSymbol;
 

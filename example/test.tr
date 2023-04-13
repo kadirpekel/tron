@@ -1,9 +1,5 @@
-var foo: int;
-
-func bar() {
+func foo() {
     var baz: float;
     baz = 4.5;
     return baz;
 }
-
-foo = 4;
