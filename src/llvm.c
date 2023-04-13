@@ -142,14 +142,14 @@ LLVMValueRef llvm_visit_call_expression(Llvm *llvm, Call *call)
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
 {
-    LLVMValueRef var_ptr = LLVMGetNamedGlobal(llvm->module, name->value);
+
+    LLVMValueRef var_ptr = find_in_stack(llvm, name->value);
     if (var_ptr == NULL)
     {
-        fprintf(stderr, "Variable not found: %s\n", name->value);
-        exit(EXIT_FAILURE);
+        fatal("Symbol not found: %s\n", name->value);
     }
 
-    LLVMTypeRef var_type = LLVMGetElementType(LLVMTypeOf(var_ptr));
+    LLVMTypeRef var_type = LLVMTypeOf(var_ptr);
     return LLVMBuildLoad2(llvm->builder, var_type, var_ptr, name->value);
 }
 
@@ -314,7 +314,7 @@ void llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function)
 
 void llvm_visit_function(Llvm *llvm, Function *function)
 {
-    LLVMTypeRef func_type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), NULL, 0, 0);
+    LLVMTypeRef func_type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
     LLVMValueRef llvm_function = LLVMAddFunction(llvm->module, function->name, func_type);
     llvm_visit_block(llvm, function->body, llvm_function);
 }
@@ -336,7 +336,7 @@ void llvm_visit_call(Llvm *llvm, Call *call)
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
 {
-    LLVMValueRef ret_value = LLVMConstInt(LLVMInt32TypeInContext(llvm->context), 0, 0);
+    LLVMValueRef ret_value = llvm_visit_expression(llvm, return_->expression);
     LLVMBuildRet(llvm->builder, ret_value);
 }
 
