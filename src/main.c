@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 
   llvm_visit(llvm, ast);
   llvm_dump(llvm, stdout);
+  llvm_compile(llvm);
 
   dispose_llvm(llvm);
   dispose_node(ast);

@@ -26,7 +26,6 @@
 #include <llvm-c/BitWriter.h>
 
 #include "node.h"
-
 typedef struct LlvmSymbol
 {
     char *name;
@@ -58,6 +57,7 @@ typedef struct Llvm
 Llvm *new_llvm();
 void llvm_visit(Llvm *llvm, Node *node);
 void llvm_dump(Llvm *llvm, FILE *out);
+void llvm_compile(Llvm *llvm);
 void dispose_llvm(Llvm *llvm);
 
 #endif

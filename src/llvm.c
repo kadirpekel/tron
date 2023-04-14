@@ -403,3 +403,34 @@ void dispose_llvm(Llvm *llvm)
     LLVMContextDispose(llvm->context);
     free(llvm);
 }
+
+void llvm_compile(Llvm *llvm)
+{
+    LLVMInitializeAllTargetInfos();
+    LLVMInitializeAllTargets();
+    LLVMInitializeAllTargetMCs();
+    LLVMInitializeAllAsmPrinters();
+
+    char *err;
+    LLVMTargetRef target;
+    LLVMTargetMachineRef target_machine;
+
+    if (LLVMGetTargetFromTriple(LLVMGetDefaultTargetTriple(), &target, &err) != 0)
+    {
+        fatal("Could not get target information");
+    }
+
+    target_machine = LLVMCreateTargetMachine(target, LLVMGetDefaultTargetTriple(),
+                                             "", "", LLVMCodeGenLevelDefault,
+                                             LLVMRelocDefault, LLVMCodeModelDefault);
+    if (!target_machine)
+    {
+        fatal("Could not create target machine");
+    }
+
+    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "output.o",
+                                    LLVMObjectFile, &err) != 0)
+    {
+        fatal("Could not compile for the target machine");
+    }
+}

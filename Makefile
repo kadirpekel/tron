@@ -28,7 +28,7 @@ SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 $(PROJECT): $(OBJ)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(OBJ) -o $(OBJ_DIR)/$(PROJECT) $(LIBS)
+	$(CC) $(LDFLAGS) $(OBJ) -o $(OBJ_DIR)/$(PROJECT) $(LIBS)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
