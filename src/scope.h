@@ -44,7 +44,7 @@ typedef struct Scope
 } Scope;
 
 Scope *new_scope(Scope *parent, Function *function);
-int insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
+Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
 Symbol *lookup_symbol(Scope *scope, char *name);
 void dispose_scope(Scope *scope);
 

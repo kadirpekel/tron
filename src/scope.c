@@ -52,21 +52,21 @@ unsigned int hash(char *str)
     return hash % SYMBOL_TABLE_SIZE;
 }
 
-int insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
+Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
 {
     Symbol *existing = lookup_symbol(scope, name);
     if (existing != NULL)
     {
-        return 0;
+        return NULL;
     }
     unsigned int index = hash(name);
-    Symbol *new_symbol = (Symbol *)malloc(sizeof(Symbol));
-    new_symbol->name = strdup(name);
-    new_symbol->symbol_type = symbol_type;
-    new_symbol->type_info = type_info;
-    new_symbol->next = scope->symbol_table[index];
-    scope->symbol_table[index] = new_symbol;
-    return 1;
+    Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
+    symbol->name = strdup(name);
+    symbol->symbol_type = symbol_type;
+    symbol->type_info = type_info;
+    symbol->next = scope->symbol_table[index];
+    scope->symbol_table[index] = symbol;
+    return symbol;
 }
 
 Symbol *lookup_symbol(Scope *scope, char *name)

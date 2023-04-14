@@ -381,6 +381,36 @@ Expression *parse_factor(Parser *p)
     return expression;
 }
 
+Assignment *parse_assignment(Parser *p, Symbol *symbol)
+{
+    Assignment *assignment = NULL;
+    Token *assign_token = NULL;
+    if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
+    {
+        Expression *expression = parse_expression(p);
+        if (expression == NULL)
+        {
+            parse_error(p, "Expression required");
+        }
+
+        if (symbol->type_info->type == TYPE_INFER)
+        {
+            symbol->type_info->type = expression->type_info->type;
+        }
+        else
+        {
+            if (symbol->type_info->type != expression->type_info->type)
+            {
+                parse_error(p, "Variable type does not match with expression type");
+            }
+        }
+
+        assignment = new_assignment(symbol->name, symbol->type_info, expression);
+        dispose_token(assign_token);
+    }
+    return assignment;
+}
+
 Variable *parse_param(Parser *p)
 {
     Variable *param = NULL;
@@ -406,43 +436,19 @@ Variable *parse_param(Parser *p)
             type_info = new_type_info(TYPE_INFER);
         }
 
-        Token *assign_token;
-
-        Expression *expression = NULL;
-        if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
-        {
-            expression = parse_expression(p);
-            if (expression == NULL)
-            {
-                parse_error(p, "Assignment requires expression");
-            }
-            dispose_token(assign_token);
-        }
-        else
-        {
-            if (type_info->type == TYPE_INFER)
-            {
-                parse_error(p, "Variable needs assignment");
-            }
-        }
-
-        Assignment *assignment = NULL;
-        if (expression != NULL)
-        {
-            if (type_info->type != expression->type_info->type)
-            {
-                parse_error(p, "Variable type does not match with expression type");
-            }
-
-            assignment = new_assignment(name_token->buffer, type_info, expression);
-        }
-
-        param = new_variable(name_token->buffer, type_info, assignment);
-
-        if (!insert_symbol(p->scope, param->name, SYMBOL_VARIABLE, param->type_info))
+        Symbol *symbol = insert_symbol(p->scope, name_token->buffer, SYMBOL_VARIABLE, type_info);
+        if (symbol == NULL)
         {
             parse_error(p, "Symbol already exists");
         }
+
+        Assignment *assignment = parse_assignment(p, symbol);
+        if (type_info->type == TYPE_INFER && assignment == NULL)
+        {
+            parse_error(p, "Variable type can not be resolved");
+        }
+
+        param = new_variable(name_token->buffer, type_info, assignment);
         dispose_token(name_token);
     }
     return param;
@@ -661,23 +667,6 @@ While *parse_while(Parser *p)
         dispose_token(while_token);
     }
     return while_;
-}
-
-Assignment *parse_assignment(Parser *p, Symbol *symbol)
-{
-    Assignment *assignment = NULL;
-    Token *assign_token = NULL;
-    if ((assign_token = accept_token(p, 1, T_ASSIGN)) != NULL)
-    {
-        Expression *expression = parse_expression(p);
-        if (expression == NULL)
-        {
-            parse_error(p, "Expression required");
-        }
-        assignment = new_assignment(symbol->name, symbol->type_info, expression);
-        dispose_token(assign_token);
-    }
-    return assignment;
 }
 
 Node *parse_namebiguity(Parser *p)
