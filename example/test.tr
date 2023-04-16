@@ -1,7 +1,9 @@
 func main() {
     var foo: int = 1;
-    foo = 2;
-    var bar = 3;
-    var baz = foo + bar;
+    while (foo == 2) {
+        foo = 3;
+    }
+    var bar = 2;
+    var baz = bar + foo;
     return baz;
 }

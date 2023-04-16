@@ -186,6 +186,9 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
         case T_DIV:
             result = LLVMBuildSDiv(llvm->builder, left, right, "sdiv");
             break;
+        case T_EQ:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntEQ, left, right, "eq");
+            break;
         default:
             fprintf(stderr, "Invalid expression\n");
             exit(EXIT_FAILURE);
@@ -283,8 +286,6 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
 
     if (current_function != NULL)
     {
-        LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(current_function);
-        LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
         value = LLVMBuildAlloca(llvm->builder, type, variable->name);
     }
     else
@@ -301,17 +302,18 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
     }
 }
 
-void llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function)
+LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function, char *label)
 {
 
-    LLVMBasicBlockRef entry_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, "entry");
-    LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
+    LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, label);
+    LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
     if (block->statements != NULL)
     {
         push_scope(llvm, llvm_function);
         llvm_visit(llvm, block->statements);
         pop_scope(llvm);
     }
+    return llvm_block;
 }
 
 void llvm_visit_function(Llvm *llvm, Function *function)
@@ -319,7 +321,7 @@ void llvm_visit_function(Llvm *llvm, Function *function)
     LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
     push_symbol(llvm, function->name, value, type);
-    llvm_visit_block(llvm, function->body, value);
+    llvm_visit_block(llvm, function->body, value, "entry");
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
@@ -329,7 +331,23 @@ void llvm_visit_if(Llvm *llvm, If *if_)
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
-    printf("While - Not Implemented Yet\n");
+    LLVMValueRef function = llvm->stack->function;
+
+    // While loop
+    LLVMBasicBlockRef loop_check = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_check");
+    LLVMBasicBlockRef loop_body = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_body");
+    LLVMBasicBlockRef loop_exit = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_exit");
+
+    // Branch from entry block to loop_check
+    LLVMBuildBr(llvm->builder, loop_check);
+
+    // ... Implement while loop using loop_check, loop_body, and loop_exit blocks ...
+
+    // Position the builder at the end of the loop_exit block
+    LLVMPositionBuilderAtEnd(llvm->builder, loop_exit);
+
+    // Remaining instructions in the function
+    // ...
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
