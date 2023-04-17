@@ -170,7 +170,6 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
 
     if (left != NULL && right != NULL)
     {
-        printf("%d \n", expression->token->token_type);
         // Both left and right set so this is a binary expression
         switch (expression->token->token_type)
         {
@@ -186,8 +185,50 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
         case T_DIV:
             result = LLVMBuildSDiv(llvm->builder, left, right, "sdiv");
             break;
+        case T_REM:
+            result = LLVMBuildSRem(llvm->builder, left, right, "srem");
+            break;
+        case T_SHL:
+            result = LLVMBuildShl(llvm->builder, left, right, "shl");
+            break;
+        case T_SHR:
+            result = LLVMBuildLShr(llvm->builder, left, right, "lshr");
+            break;
+        case T_AND:
+            result = LLVMBuildAnd(llvm->builder, left, right, "and");
+            break;
+        case T_OR:
+            result = LLVMBuildOr(llvm->builder, left, right, "or");
+            break;
+        case T_XOR:
+            result = LLVMBuildXor(llvm->builder, left, right, "xor");
+            break;
+        case T_BIT_CLEAR:
+            result = LLVMBuildAnd(llvm->builder, left, LLVMBuildNot(llvm->builder, right, "not"), "bitclear");
+            break;
         case T_EQ:
             result = LLVMBuildICmp(llvm->builder, LLVMIntEQ, left, right, "eq");
+            break;
+        case T_NEQ:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntNE, left, right, "neq");
+            break;
+        case T_LT:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntSLT, left, right, "lt");
+            break;
+        case T_LTE:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntSLE, left, right, "lte");
+            break;
+        case T_GT:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntSGT, left, right, "gt");
+            break;
+        case T_GTE:
+            result = LLVMBuildICmp(llvm->builder, LLVMIntSGE, left, right, "gte");
+            break;
+        case T_LOGICAL_AND:
+            result = LLVMBuildAnd(llvm->builder, left, right, "logical_and");
+            break;
+        case T_LOGICAL_OR:
+            result = LLVMBuildOr(llvm->builder, left, right, "logical_or");
             break;
         default:
             fprintf(stderr, "Invalid expression\n");
@@ -200,12 +241,33 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
         if (left != NULL)
         {
             // Only left expression set so this is left to right unary expression
-            result = NULL;
+            switch (expression->token->token_type)
+            {
+            case T_INC:
+                result = LLVMBuildAdd(llvm->builder, left, LLVMConstInt(LLVMInt32Type(), 1, 0), "inc");
+                break;
+            case T_DEC:
+                result = LLVMBuildSub(llvm->builder, left, LLVMConstInt(LLVMInt32Type(), 1, 0), "dec");
+                break;
+            default:
+                fprintf(stderr, "Invalid left unary expression\n");
+                exit(EXIT_FAILURE);
+                break;
+            }
         }
         else if (right != NULL)
         {
             // Only right expression set so this is right to left unary expression
-            result = NULL;
+            switch (expression->token->token_type)
+            {
+            case T_SUB:
+                result = LLVMBuildNeg(llvm->builder, right, "neg");
+                break;
+            default:
+                fprintf(stderr, "Invalid right unary expression\n");
+                exit(EXIT_FAILURE);
+                break;
+            }
         }
         else
         {
@@ -302,11 +364,9 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
     }
 }
 
-LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, Block *block, LLVMValueRef llvm_function, char *label)
+LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, Block *block, LLVMBasicBlockRef llvm_block)
 {
-
-    LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, llvm_function, label);
-    LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
+    LLVMValueRef llvm_function = LLVMGetBasicBlockParent(llvm_block);
     if (block->statements != NULL)
     {
         push_scope(llvm, llvm_function);
@@ -321,33 +381,73 @@ void llvm_visit_function(Llvm *llvm, Function *function)
     LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
     push_symbol(llvm, function->name, value, type);
-    llvm_visit_block(llvm, function->body, value, "entry");
+    LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
+    LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
+    llvm_visit_block(llvm, function->body, llvm_block);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
 {
-    printf("If - Not Implemented Yet\n");
+    LLVMValueRef function = llvm->stack->function;
+    LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
+
+    LLVMBasicBlockRef if_exit = NULL;
+
+    while (if_)
+    {
+        LLVMBasicBlockRef if_check = LLVMAppendBasicBlockInContext(llvm->context, function, "if_check");
+        LLVMBasicBlockRef if_body = LLVMAppendBasicBlockInContext(llvm->context, function, "if_body");
+
+        if_exit = LLVMAppendBasicBlockInContext(llvm->context, function, "if_exit");
+
+        // Add a branch instruction to the current if_check block
+        LLVMPositionBuilderAtEnd(llvm->builder, current_block);
+        LLVMBuildBr(llvm->builder, if_check);
+
+        LLVMPositionBuilderAtEnd(llvm->builder, if_check);
+
+        if (if_->condition)
+        {
+            LLVMValueRef cond_value = llvm_visit_expression(llvm, if_->condition);
+            LLVMBuildCondBr(llvm->builder, cond_value, if_body, if_exit);
+        }
+        else
+        {
+            LLVMBuildBr(llvm->builder, if_body);
+        }
+
+        LLVMPositionBuilderAtEnd(llvm->builder, if_body);
+        llvm_visit_block(llvm, if_->body, if_body);
+        LLVMBuildBr(llvm->builder, if_exit);
+
+        current_block = if_exit;
+        if_ = if_->next;
+    }
+
+    LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
     LLVMValueRef function = llvm->stack->function;
+    LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
 
-    // While loop
-    LLVMBasicBlockRef loop_check = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_check");
-    LLVMBasicBlockRef loop_body = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_body");
-    LLVMBasicBlockRef loop_exit = LLVMAppendBasicBlockInContext(llvm->context, function, "loop_exit");
+    LLVMBasicBlockRef while_check_block = LLVMAppendBasicBlockInContext(llvm->context, function, "while_check");
+    LLVMBasicBlockRef while_body_block = LLVMAppendBasicBlockInContext(llvm->context, function, "while_body");
+    LLVMBasicBlockRef while_exit_block = LLVMAppendBasicBlockInContext(llvm->context, function, "while_exit");
 
-    // Branch from entry block to loop_check
-    LLVMBuildBr(llvm->builder, loop_check);
+    LLVMPositionBuilderAtEnd(llvm->builder, current_block);
+    LLVMBuildBr(llvm->builder, while_check_block);
 
-    // ... Implement while loop using loop_check, loop_body, and loop_exit blocks ...
+    LLVMPositionBuilderAtEnd(llvm->builder, while_check_block);
+    LLVMValueRef cond_value = llvm_visit_expression(llvm, while_->condition);
+    LLVMBuildCondBr(llvm->builder, cond_value, while_body_block, while_exit_block);
 
-    // Position the builder at the end of the loop_exit block
-    LLVMPositionBuilderAtEnd(llvm->builder, loop_exit);
+    LLVMPositionBuilderAtEnd(llvm->builder, while_body_block);
+    llvm_visit(llvm, while_->body->statements);
+    LLVMBuildBr(llvm->builder, while_check_block);
 
-    // Remaining instructions in the function
-    // ...
+    LLVMPositionBuilderAtEnd(llvm->builder, while_exit_block);
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
@@ -450,5 +550,16 @@ void llvm_compile(Llvm *llvm)
                                     LLVMObjectFile, &err) != 0)
     {
         fatal("Could not compile for the target machine");
+    }
+}
+
+void llvm_validate(Llvm *llvm)
+{
+    char *error_msg = NULL;
+    LLVMBool result = LLVMVerifyModule(llvm->module, LLVMAbortProcessAction, &error_msg);
+
+    if (result != 0)
+    {
+        fatal("Module verification failed: %s\n", error_msg);
     }
 }
