@@ -128,7 +128,7 @@ void enter_scope(Parser *p, Function *function)
 {
     if (function == NULL && p->scope->parent != NULL)
     {
-        function = p->scope->parent->function;
+        function = p->scope->parent->function_ref;
     }
 
     Scope *scope = new_scope(p->scope, function);
@@ -477,8 +477,9 @@ Return *parse_return(Parser *p)
     if ((return_token = accept_keyword(p, RETURN)) != NULL)
     {
         return_ = new_return(parse_expression(p));
+        Function *function = (Function *)p->scope->function_ref;
 
-        if (p->scope->function->type_info->type == TYPE_INFER)
+        if (function->type_info->type == TYPE_INFER)
         {
             if (return_->expression->type_info->type == TYPE_INFER)
             {
@@ -486,12 +487,12 @@ Return *parse_return(Parser *p)
             }
             else
             {
-                p->scope->function->type_info = return_->expression->type_info;
+                function->type_info = return_->expression->type_info;
             }
         }
         else
         {
-            if (return_->expression->type_info->type != p->scope->function->type_info->type)
+            if (return_->expression->type_info->type != function->type_info->type)
             {
                 parse_error(p, "Invalid or inconsistent return type");
             }
@@ -736,7 +737,7 @@ Node *parse_statement(Parser *p)
         return new_node(N_FUNCTION, function);
     }
 
-    if (p->scope->function != NULL)
+    if (p->scope->function_ref != NULL)
     {
         Return *return_ = parse_return(p);
         if (return_ != NULL)

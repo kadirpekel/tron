@@ -17,6 +17,7 @@
 #ifndef MSCOPE_H_
 #define MSCOPE_H_
 
+#include "hashtable.h"
 #include "node.h"
 
 #define SYMBOL_TABLE_SIZE 1024
@@ -39,11 +40,11 @@ typedef struct Symbol
 typedef struct Scope
 {
     struct Scope *parent;
-    Symbol **symbol_table;
-    Function *function;
+    HashTable *symbol_table;
+    void *function_ref;
 } Scope;
 
-Scope *new_scope(Scope *parent, Function *function);
+Scope *new_scope(Scope *parent, void *function_ref);
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
 Symbol *lookup_symbol(Scope *scope, char *name);
 void dispose_scope(Scope *scope);

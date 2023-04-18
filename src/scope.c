@@ -19,12 +19,12 @@
 
 #include "scope.h"
 
-Scope *new_scope(Scope *parent, Function *function)
+Scope *new_scope(Scope *parent, void *function_ref)
 {
     Scope *scope = malloc(sizeof(Scope));
     scope->parent = parent;
-    scope->function = function;
-    scope->symbol_table = malloc(SYMBOL_TABLE_SIZE * sizeof(Symbol));
+    scope->function_ref = function_ref;
+    scope->symbol_table = new_hash_table(SYMBOL_TABLE_SIZE);
 
     if (parent == NULL)
     {
@@ -41,58 +41,33 @@ Scope *new_scope(Scope *parent, Function *function)
     return scope;
 }
 
-unsigned int hash(char *str)
-{
-    unsigned int hash = 5381;
-    int c;
-
-    while ((c = *str++))
-        hash = ((hash << 5) + hash) + c;
-
-    return hash % SYMBOL_TABLE_SIZE;
-}
-
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
 {
-    Symbol *existing = lookup_symbol(scope, name);
-    if (existing != NULL)
-    {
-        return NULL;
-    }
-    unsigned int index = hash(name);
-    Symbol *symbol = (Symbol *)malloc(sizeof(Symbol));
+    Symbol *symbol = malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->symbol_type = symbol_type;
     symbol->type_info = type_info;
-    symbol->next = scope->symbol_table[index];
-    scope->symbol_table[index] = symbol;
-    return symbol;
+
+    Bucket *bucket = insert_value(scope->symbol_table, name, symbol);
+    if (bucket != NULL)
+    {
+        return (Symbol *)bucket->value;
+    }
+    return NULL;
 }
 
 Symbol *lookup_symbol(Scope *scope, char *name)
 {
-    if (scope == NULL)
+    Bucket *bucket = (Bucket *)lookup_value(scope->symbol_table, name);
+    if (bucket != NULL)
     {
-        return NULL;
+        return (Symbol *)bucket->value;
     }
-
-    unsigned int index = hash(name);
-    Symbol *symbol = scope->symbol_table[index];
-
-    while (symbol != NULL)
-    {
-        if (strcmp(symbol->name, name) == 0)
-        {
-            return symbol;
-        }
-        symbol = symbol->next;
-    }
-
-    return lookup_symbol(scope->parent, name);
+    return NULL;
 }
 
 void dispose_scope(Scope *scope)
 {
-    free(scope->symbol_table);
+    dispose_hash_table(scope->symbol_table);
     free(scope);
 }
