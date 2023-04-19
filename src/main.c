@@ -19,6 +19,12 @@
 
 int main(int argc, char **argv)
 {
+  if (argc != 3)
+  {
+    fprintf(stderr, "Usage: tron <input_file> <output_file>\n");
+    exit(EXIT_FAILURE);
+  }
+
   FILE *file = fopen(argv[1], "r");
 
   Parser *p = new_parser(file);
@@ -29,7 +35,7 @@ int main(int argc, char **argv)
   llvm_visit(llvm, ast);
   llvm_validate(llvm);
   llvm_dump(llvm, stdout);
-  llvm_compile(llvm);
+  llvm_compile(llvm, argv[2]);
 
   dispose_llvm(llvm);
 

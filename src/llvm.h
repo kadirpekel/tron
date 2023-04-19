@@ -47,7 +47,7 @@ LlvmInfo *new_llvm_info(LLVMTypeRef type, LLVMValueRef value);
 void llvm_visit(Llvm *llvm, Node *node);
 LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression);
 void llvm_dump(Llvm *llvm, FILE *out);
-void llvm_compile(Llvm *llvm);
+void llvm_compile(Llvm *llvm, char *output);
 void llvm_validate(Llvm *llvm);
 void dispose_llvm(Llvm *llvm);
 void dispose_llvm_info(LlvmInfo *llvm_info);

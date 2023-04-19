@@ -475,7 +475,7 @@ void dispose_llvm(Llvm *llvm)
     free(llvm);
 }
 
-void llvm_compile(Llvm *llvm)
+void llvm_compile(Llvm *llvm, char *output)
 {
     LLVMInitializeAllTargetInfos();
     LLVMInitializeAllTargets();
@@ -499,7 +499,7 @@ void llvm_compile(Llvm *llvm)
         fatal("Could not create target machine");
     }
 
-    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "obj/fixture.o",
+    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, output,
                                     LLVMObjectFile, &err) != 0)
     {
         fatal("Could not compile for the target machine");
