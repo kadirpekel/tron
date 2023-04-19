@@ -19,13 +19,20 @@
 
 #include "scope.h"
 
-Scope *new_scope(Scope *parent, void *function_ref)
+Scope *push_scope(Scope *parent, void *function_ref)
 {
     Scope *scope = malloc(sizeof(Scope));
     scope->parent = parent;
     scope->function_ref = function_ref;
     scope->symbol_table = new_hash_table(SYMBOL_TABLE_SIZE);
     return scope;
+}
+
+Scope *pop_scope(Scope *scope)
+{
+    Scope *parent = scope->parent;
+    dispose_scope(scope);
+    return parent;
 }
 
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info)
@@ -45,13 +52,14 @@ Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *sy
 
 Symbol *lookup_symbol(Scope *scope, char *name)
 {
-    Scope* current = scope;
-    while(current != NULL) {
+    Scope *current = scope;
+    while (current != NULL)
+    {
         Bucket *bucket = (Bucket *)lookup_value(current->symbol_table, name);
         if (bucket != NULL)
         {
             return (Symbol *)bucket->value;
-        }    
+        }
         current = current->parent;
     }
     return NULL;

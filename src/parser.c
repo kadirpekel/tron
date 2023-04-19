@@ -35,7 +35,7 @@ Parser *new_parser(FILE *file)
 {
     Parser *p = malloc(sizeof(Parser));
     p->l = new_lexer(file);
-    p->scope = new_scope(NULL, NULL);
+    p->scope = push_scope(NULL, NULL);
     p->depth = 0;
 
     // Global builtins
@@ -43,7 +43,7 @@ Parser *new_parser(FILE *file)
     insert_symbol(p->scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
     insert_symbol(p->scope, "float", SYMBOL_TYPE, new_type_info(TYPE_FLOAT));
     // Functions
-    insert_symbol(p->scope, "print", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
+    insert_symbol(p->scope, "putchar", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
     insert_symbol(p->scope, "as_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
     insert_symbol(p->scope, "as_float", SYMBOL_FUNCTION, new_type_info(TYPE_FLOAT));
 
@@ -141,14 +141,13 @@ void enter_scope(Parser *p, Function *function)
         function = p->scope->parent->function_ref;
     }
 
-    Scope *scope = new_scope(p->scope, function);
-    p->scope = scope;
+    p->scope = push_scope(p->scope, function);
     p->depth++;
 }
 
 void exit_scope(Parser *p)
 {
-    p->scope = p->scope->parent;
+    p->scope = pop_scope(p->scope);
     p->depth--;
 }
 
@@ -158,7 +157,7 @@ TypeInfo *parse_type_info(Parser *p)
     Symbol *symbol;
     if ((symbol = accept_type(p)) != NULL)
     {
-        type_info = new_type_info(((TypeInfo*)symbol->symbol_info)->type);
+        type_info = new_type_info(((TypeInfo *)symbol->symbol_info)->type);
     }
     return type_info;
 }
@@ -403,7 +402,7 @@ Assignment *parse_assignment(Parser *p, Symbol *symbol)
             parse_error(p, "Expression required");
         }
 
-        TypeInfo* type_info = (TypeInfo*)symbol->symbol_info;
+        TypeInfo *type_info = (TypeInfo *)symbol->symbol_info;
 
         if (type_info->type == TYPE_INFER)
         {

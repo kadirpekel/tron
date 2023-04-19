@@ -1,7 +1,9 @@
 func main() {
-    var foo = 3;
-    while (foo == 3) {
-        foo = 4;
+    var i = 0;
+    while (i < 10) {
+        var ascii = 48 + i;
+        putchar(ascii);
+        i = i + 1;
     }
-    return foo;
+    return 0;
 }

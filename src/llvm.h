@@ -25,40 +25,30 @@
 #include <llvm-c/Transforms/Vectorize.h>
 #include <llvm-c/BitWriter.h>
 
+#include "scope.h"
 #include "node.h"
-typedef struct LlvmSymbol
+
+typedef struct LlvmInfo
 {
-    char *name;
-    LLVMValueRef value;
     LLVMTypeRef type;
-    struct LlvmSymbol *next;
-} LlvmSymbol;
-
-typedef struct LlvmSymbolTable
-{
-    LlvmSymbol *head;
-} LlvmSymbolTable;
-
-typedef struct LlvmSymbolTableStack
-{
-    LLVMValueRef function;
-    LlvmSymbolTable *table;
-    struct LlvmSymbolTableStack *next;
-} LlvmSymbolTableStack;
+    LLVMValueRef value;
+} LlvmInfo;
 
 typedef struct Llvm
 {
     LLVMContextRef context;
     LLVMModuleRef module;
     LLVMBuilderRef builder;
-    LlvmSymbolTableStack *stack;
+    Scope *scope;
 } Llvm;
 
 Llvm *new_llvm();
+LlvmInfo *new_llvm_info(LLVMTypeRef type, LLVMValueRef value);
 void llvm_visit(Llvm *llvm, Node *node);
 void llvm_dump(Llvm *llvm, FILE *out);
 void llvm_compile(Llvm *llvm);
 void llvm_validate(Llvm *llvm);
 void dispose_llvm(Llvm *llvm);
+void dispose_llvm_info(LlvmInfo *llvm_info);
 
 #endif
