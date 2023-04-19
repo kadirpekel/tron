@@ -44,9 +44,9 @@ while (i < 10) {
 - ~~Initial lexer: Tokenizing a sufficient number of tokens to support the first phase.~~
 - ~~Initial parser: Parsing the bare minimum statements required for the first phase.~~
 - ~~Scope handling: Maintaining a scope-based symbol table to track functions, variables, and types.~~
-- Expression auto type resolution over type inference.
-- Conditional operators.
-- Parse time semantic checks.
-- Consider a generic backend to support both llvm and wasm
-- Initial LLVM emit and compilation to a final binary object, ready for linking with external executables.
+- ~~Expression auto type resolution over type inference.~~
+- ~~Conditional operators.~~
+- ~~Parse time semantic checks.~~
+- ~~Consider a generic backend to support both llvm~~ and wasm.
+- ~~Initial LLVM emit and compilation to a final binary object, ready for linking with external executables.~~
 - Perform a memory review and cleanup to ensure proper handling of unfreed allocations in the source code.
