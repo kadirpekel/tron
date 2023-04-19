@@ -58,10 +58,15 @@ Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo
 
 Symbol *lookup_symbol(Scope *scope, char *name)
 {
-    Bucket *bucket = (Bucket *)lookup_value(scope->symbol_table, name);
-    if (bucket != NULL)
-    {
-        return (Symbol *)bucket->value;
+    Scope* current = scope;
+    while(current != NULL) {
+
+        Bucket *bucket = (Bucket *)lookup_value(current->symbol_table, name);
+        if (bucket != NULL)
+        {
+            return (Symbol *)bucket->value;
+        }    
+        current = current->parent;
     }
     return NULL;
 }
