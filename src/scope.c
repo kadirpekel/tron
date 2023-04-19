@@ -48,7 +48,7 @@ Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo
     symbol->symbol_type = symbol_type;
     symbol->type_info = type_info;
 
-    Bucket *bucket = insert_value(scope->symbol_table, name, symbol);
+    Bucket *bucket = insert_value(scope->symbol_table, symbol->name, symbol);
     if (bucket != NULL)
     {
         return (Symbol *)bucket->value;
@@ -60,7 +60,6 @@ Symbol *lookup_symbol(Scope *scope, char *name)
 {
     Scope* current = scope;
     while(current != NULL) {
-
         Bucket *bucket = (Bucket *)lookup_value(current->symbol_table, name);
         if (bucket != NULL)
         {

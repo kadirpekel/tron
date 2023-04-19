@@ -32,6 +32,7 @@ int main(int argc, char **argv)
   llvm_compile(llvm);
 
   dispose_llvm(llvm);
+
   dispose_node(ast);
   dispose_parser(p);
   fclose(file);
