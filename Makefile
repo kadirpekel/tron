@@ -39,7 +39,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 .PHONY : clean $(PROJECT)
 
-boot: $(OBJ_DIR)/corelib.o $(OBJ_DIR)/$(PROJECT)
+fixture: $(OBJ_DIR)/corelib.o $(OBJ_DIR)/$(PROJECT)
 	$(OBJ_DIR)/$(PROJECT) example/$(FIXTURE).tr
 	$(CC) $(OBJ_DIR)/$(FIXTURE).o $(OBJ_DIR)/corelib.o -o $(OBJ_DIR)/$(FIXTURE)
 	$(OBJ_DIR)/$(FIXTURE)
