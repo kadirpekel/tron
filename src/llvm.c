@@ -499,7 +499,7 @@ void llvm_compile(Llvm *llvm)
         fatal("Could not create target machine");
     }
 
-    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "main.o",
+    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "obj/fixture.o",
                                     LLVMObjectFile, &err) != 0)
     {
         fatal("Could not compile for the target machine");

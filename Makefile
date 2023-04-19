@@ -23,6 +23,7 @@ LDFLAGS = `llvm-config --ldflags`
 LIBS = `llvm-config --libs`
 SRC_DIR = src
 OBJ_DIR = obj
+FIXTURE = fixture
 
 SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
@@ -39,8 +40,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 .PHONY : clean $(PROJECT)
 
 boot: $(OBJ_DIR)/corelib.o $(OBJ_DIR)/$(PROJECT)
-	$(OBJ_DIR)/$(PROJECT) example/main.tr
-	$(CC) main.o $(OBJ_DIR)/corelib.o -o main
+	$(OBJ_DIR)/$(PROJECT) example/$(FIXTURE).tr
+	$(CC) $(OBJ_DIR)/$(FIXTURE).o $(OBJ_DIR)/corelib.o -o $(OBJ_DIR)/$(FIXTURE)
+	$(OBJ_DIR)/$(FIXTURE)
 
 clean:
 	@rm -rf $(OBJ_DIR)
