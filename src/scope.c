@@ -25,28 +25,15 @@ Scope *new_scope(Scope *parent, void *function_ref)
     scope->parent = parent;
     scope->function_ref = function_ref;
     scope->symbol_table = new_hash_table(SYMBOL_TABLE_SIZE);
-
-    if (parent == NULL)
-    {
-        // Global builtins
-        // Types
-        insert_symbol(scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
-        insert_symbol(scope, "float", SYMBOL_TYPE, new_type_info(TYPE_FLOAT));
-        // Functions
-        insert_symbol(scope, "print", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
-        insert_symbol(scope, "as_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
-        insert_symbol(scope, "as_float", SYMBOL_FUNCTION, new_type_info(TYPE_FLOAT));
-    }
-
     return scope;
 }
 
-Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info)
+Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info)
 {
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->symbol_type = symbol_type;
-    symbol->type_info = type_info;
+    symbol->symbol_info = symbol_info;
 
     Bucket *bucket = insert_value(scope->symbol_table, symbol->name, symbol);
     if (bucket != NULL)

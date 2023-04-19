@@ -37,6 +37,16 @@ Parser *new_parser(FILE *file)
     p->l = new_lexer(file);
     p->scope = new_scope(NULL, NULL);
     p->depth = 0;
+
+    // Global builtins
+    // Types
+    insert_symbol(p->scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
+    insert_symbol(p->scope, "float", SYMBOL_TYPE, new_type_info(TYPE_FLOAT));
+    // Functions
+    insert_symbol(p->scope, "print", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
+    insert_symbol(p->scope, "as_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
+    insert_symbol(p->scope, "as_float", SYMBOL_FUNCTION, new_type_info(TYPE_FLOAT));
+
     next_token(p);
     return p;
 }
@@ -148,7 +158,7 @@ TypeInfo *parse_type_info(Parser *p)
     Symbol *symbol;
     if ((symbol = accept_type(p)) != NULL)
     {
-        type_info = new_type_info(symbol->type_info->type);
+        type_info = new_type_info(((TypeInfo*)symbol->symbol_info)->type);
     }
     return type_info;
 }
@@ -214,7 +224,7 @@ Call *parse_call(Parser *p, Symbol *symbol)
             dispose_token(commaToken);
         }
 
-        call = new_call(symbol->name, symbol->type_info, expression);
+        call = new_call(symbol->name, symbol->symbol_info, expression);
         dispose_token(expect_token(p, 1, T_RPAREN));
         dispose_token(lparen_token);
     }
@@ -355,7 +365,7 @@ Expression *parse_factor(Parser *p)
                             NULL,
                             NULL,
                             new_node(N_CALL, call),
-                            symbol->type_info);
+                            symbol->symbol_info);
                     }
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
@@ -364,7 +374,7 @@ Expression *parse_factor(Parser *p)
                             NULL,
                             NULL,
                             new_node(N_NAME, new_name(leaf_token->buffer)),
-                            symbol->type_info);
+                            symbol->symbol_info);
                     }
                     else
                     {
@@ -393,19 +403,21 @@ Assignment *parse_assignment(Parser *p, Symbol *symbol)
             parse_error(p, "Expression required");
         }
 
-        if (symbol->type_info->type == TYPE_INFER)
+        TypeInfo* type_info = (TypeInfo*)symbol->symbol_info;
+
+        if (type_info->type == TYPE_INFER)
         {
-            symbol->type_info->type = expression->type_info->type;
+            type_info->type = expression->type_info->type;
         }
         else
         {
-            if (symbol->type_info->type != expression->type_info->type)
+            if (type_info->type != expression->type_info->type)
             {
                 parse_error(p, "Variable type does not match with expression type");
             }
         }
 
-        assignment = new_assignment(symbol->name, symbol->type_info, expression);
+        assignment = new_assignment(symbol->name, type_info, expression);
         dispose_token(assign_token);
     }
     return assignment;

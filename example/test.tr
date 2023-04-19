@@ -1,4 +1,7 @@
 func main() {
-    var foo = 1;
+    var foo = 3;
+    while (foo == 3) {
+        foo = 4;
+    }
     return foo;
 }

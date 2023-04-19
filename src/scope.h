@@ -32,7 +32,7 @@ typedef enum SymbolType
 typedef struct Symbol
 {
     char *name;
-    TypeInfo *type_info;
+    void *symbol_info;
     SymbolType symbol_type;
     struct Symbol *next;
 } Symbol;
@@ -45,7 +45,7 @@ typedef struct Scope
 } Scope;
 
 Scope *new_scope(Scope *parent, void *function_ref);
-Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, TypeInfo *type_info);
+Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info);
 Symbol *lookup_symbol(Scope *scope, char *name);
 void dispose_scope(Scope *scope);
 
