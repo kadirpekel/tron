@@ -67,8 +67,25 @@ LLVMValueRef llvm_visit_call(Llvm *llvm, Call *call)
     {
         fatal("Symbol not found: %s\n", call->name);
     }
+
+    int num_args = 0;
+    Expression *arg = call->expression;
+    while (arg != NULL)
+    {
+        num_args++;
+        arg = arg->next;
+    }
+    LLVMValueRef *args = malloc(num_args * sizeof(LLVMValueRef));
+    int i = 0;
+    arg = call->expression;
+    while (arg != NULL)
+    {
+        args[i++] = llvm_visit_expression(llvm, arg);
+        arg = arg->next;
+    }
+
     LlvmInfo *llvm_info = symbol->symbol_info;
-    return LLVMBuildCall2(llvm->builder, llvm_info->type, llvm_info->value, NULL, 0, call->name);
+    return LLVMBuildCall2(llvm->builder, llvm_info->type, llvm_info->value, args, num_args, call->name);
 }
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
@@ -437,9 +454,10 @@ Llvm *new_llvm()
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
     llvm->scope = push_scope(NULL, NULL);
 
-    LLVMTypeRef type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), NULL, 0, 0);
-    LLVMValueRef value = LLVMAddFunction(llvm->module, "putchar", type);
-    insert_symbol(llvm->scope, "putchar", SYMBOL_FUNCTION, new_llvm_info(type, value));
+    LLVMTypeRef param_types[] = {LLVMInt32TypeInContext(llvm->context)};
+    LLVMTypeRef type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), param_types, 1, 0);
+    LLVMValueRef value = LLVMAddFunction(llvm->module, "print_int", type);
+    insert_symbol(llvm->scope, "print_int", SYMBOL_FUNCTION, new_llvm_info(type, value));
 
     return llvm;
 }
@@ -481,7 +499,7 @@ void llvm_compile(Llvm *llvm)
         fatal("Could not create target machine");
     }
 
-    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "output.o",
+    if (LLVMTargetMachineEmitToFile(target_machine, llvm->module, "main.o",
                                     LLVMObjectFile, &err) != 0)
     {
         fatal("Could not compile for the target machine");

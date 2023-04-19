@@ -43,9 +43,7 @@ Parser *new_parser(FILE *file)
     insert_symbol(p->scope, "int", SYMBOL_TYPE, new_type_info(TYPE_INT));
     insert_symbol(p->scope, "float", SYMBOL_TYPE, new_type_info(TYPE_FLOAT));
     // Functions
-    insert_symbol(p->scope, "putchar", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
-    insert_symbol(p->scope, "as_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
-    insert_symbol(p->scope, "as_float", SYMBOL_FUNCTION, new_type_info(TYPE_FLOAT));
+    insert_symbol(p->scope, "print_int", SYMBOL_FUNCTION, new_type_info(TYPE_INT));
 
     next_token(p);
     return p;

@@ -27,7 +27,7 @@ OBJ_DIR = obj
 SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
-$(PROJECT): $(OBJ)
+$(OBJ_DIR)/$(PROJECT): $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) -o $(OBJ_DIR)/$(PROJECT) $(LIBS)
 
 $(OBJ_DIR):
@@ -37,6 +37,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 .PHONY : clean $(PROJECT)
+
+boot: $(OBJ_DIR)/corelib.o $(OBJ_DIR)/$(PROJECT)
+	$(OBJ_DIR)/$(PROJECT) example/main.tr
+	$(CC) main.o $(OBJ_DIR)/corelib.o -o main
 
 clean:
 	@rm -rf $(OBJ_DIR)
