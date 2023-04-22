@@ -134,11 +134,6 @@ Symbol *accept_type(Parser *p)
 
 void enter_scope(Parser *p, Function *function)
 {
-    if (function == NULL && p->scope->parent != NULL)
-    {
-        function = p->scope->parent->function_ref;
-    }
-
     p->scope = push_scope(p->scope, function);
     p->depth++;
 }
@@ -485,10 +480,15 @@ Return *parse_return(Parser *p)
     Token *return_token;
     if ((return_token = accept_keyword(p, RETURN)) != NULL)
     {
-        return_ = new_return(parse_expression(p));
-        Function *function = (Function *)p->scope->function_ref;
+        Function *function_ref = find_enclosing_function_ref(p->scope);
+        if (function_ref == NULL) {
+            parse_error(p, "Return statements are not allowed at root level");
+        }
 
-        if (function->type_info->type == TYPE_INFER)
+        return_ = new_return(parse_expression(p));
+        
+
+        if (function_ref->type_info->type == TYPE_INFER)
         {
             if (return_->expression->type_info->type == TYPE_INFER)
             {
@@ -496,12 +496,12 @@ Return *parse_return(Parser *p)
             }
             else
             {
-                function->type_info = return_->expression->type_info;
+                function_ref->type_info = return_->expression->type_info;
             }
         }
         else
         {
-            if (return_->expression->type_info->type != function->type_info->type)
+            if (return_->expression->type_info->type != function_ref->type_info->type)
             {
                 parse_error(p, "Invalid or inconsistent return type");
             }
@@ -594,6 +594,11 @@ If *parse_single_if(Parser *p)
 
     if ((if_token = accept_keyword(p, IF)) != NULL)
     {
+        Function* function_ref = find_enclosing_function_ref(p->scope);
+        if (function_ref == NULL) {
+            parse_error(p, "If statements are not allowed at root level");
+        }
+
         dispose_token(expect_token(p, 1, T_LPAREN));
         Expression *condition = parse_expression(p);
         if (condition == NULL)
@@ -660,6 +665,11 @@ While *parse_while(Parser *p)
 
     if ((while_token = accept_keyword(p, WHILE)) != NULL)
     {
+        Function* function_ref = find_enclosing_function_ref(p->scope);
+        if (function_ref == NULL) {
+            parse_error(p, "While statements are not allowed at root level");
+        }
+    
         dispose_token(expect_token(p, 1, T_LPAREN));
         Expression *condition = parse_expression(p);
         if (condition == NULL)
@@ -727,6 +737,11 @@ Node *parse_namebiguity(Parser *p)
 
 Node *parse_statement(Parser *p)
 {
+    Function *function = parse_function(p);
+    if (function != NULL)
+    {
+        return new_node(N_FUNCTION, function);
+    }
 
     If *if_ = parse_if(p);
     if (if_ != NULL)
@@ -740,19 +755,10 @@ Node *parse_statement(Parser *p)
         return new_node(N_WHILE, while_);
     }
 
-    Function *function = parse_function(p);
-    if (function != NULL)
+    Return *return_ = parse_return(p);
+    if (return_ != NULL)
     {
-        return new_node(N_FUNCTION, function);
-    }
-
-    if (p->scope->function_ref != NULL)
-    {
-        Return *return_ = parse_return(p);
-        if (return_ != NULL)
-        {
-            return new_node(N_RETURN, return_);
-        }
+        return new_node(N_RETURN, return_);
     }
 
     Variable *variable = parse_variable(p);

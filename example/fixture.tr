@@ -1,11 +1,9 @@
+var i = 1;
+i = 2;
+
 func main() {
-    var i = 6;
-    if (i < 3) {
-        print_int(1);
-    } else if (i < 6) {
-        print_int(4);
-    } else {
-        print_int(7);
+    if (i == 2) {
+        print_int(i);
     }
     return 0;
 }
