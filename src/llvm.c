@@ -327,24 +327,34 @@ void llvm_visit_if(Llvm *llvm, If *if_)
 {
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
     LLVMValueRef function_ref = LLVMGetBasicBlockParent(current_block);
+    LLVMBasicBlockRef if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
 
     LLVMBasicBlockRef if_check = NULL;
     while (if_ != NULL)
     {
-
-        if (if_check == NULL) {
-            if_check = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_check");
+        if (if_check == NULL)
+        {
+            if_check = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_check");
+            LLVMBuildBr(llvm->builder, if_check);
         }
-        LLVMBasicBlockRef if_body = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_body");
-        LLVMBasicBlockRef if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
 
-        // Continue the control flow from the current block to the if_check block
-        LLVMPositionBuilderAtEnd(llvm->builder, current_block);
+        LLVMPositionBuilderAtEnd(llvm->builder, if_check);
+
+        LLVMBasicBlockRef if_body = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_body");
 
         if (if_->condition)
         {
             LLVMValueRef cond_value = llvm_visit_expression(llvm, if_->condition);
-            LLVMBuildCondBr(llvm->builder, cond_value, if_body, if_exit);
+            if (if_->next)
+            {
+
+                if_check = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_check");
+                LLVMBuildCondBr(llvm->builder, cond_value, if_body, if_check);
+            }
+            else
+            {
+                LLVMBuildCondBr(llvm->builder, cond_value, if_body, if_exit);
+            }
         }
         else
         {
@@ -355,17 +365,11 @@ void llvm_visit_if(Llvm *llvm, If *if_)
         llvm_visit_block(llvm, if_->body, if_body);
         LLVMBuildBr(llvm->builder, if_exit);
 
-        LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
-        if (if_->next) {
-            if_check = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_check");
-        }
-        
-
-        current_block = if_exit;
         if_ = if_->next;
     }
-}
 
+    LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
+}
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
