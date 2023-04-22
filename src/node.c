@@ -24,6 +24,7 @@ Node *new_node(NodeType nodeType, void *data)
     Node *node = malloc(sizeof(Node));
     node->node_type = nodeType;
     node->data = data;
+    node->next = NULL;
     return node;
 }
 
@@ -65,6 +66,7 @@ Expression *new_expression(Token *token, Expression *left, Expression *right, No
     expression->right = right;
     expression->node = node;
     expression->type_info = type_info;
+    expression->next = NULL;
     return expression;
 }
 
@@ -93,6 +95,7 @@ TypeInfo *new_type_info(Type type)
 {
     TypeInfo *type_info = malloc(sizeof(TypeInfo));
     type_info->type = type;
+    type_info->next = NULL;
     return type_info;
 }
 
@@ -120,6 +123,7 @@ If *new_if(Expression *condition, Block *body)
     If *if_ = malloc(sizeof(If));
     if_->condition = condition;
     if_->body = body;
+    if_->next = NULL;
     return if_;
 }
 

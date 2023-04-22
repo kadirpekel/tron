@@ -1,8 +1,9 @@
 func main() {
-    var i = 0;
-    while (i < 10) {
-        print_int(i);
-        i = i + 1;
+    var i = 4;
+    if (i < 5) {
+        print_int(1);
+    } else {
+        print_int(10);
     }
     return 0;
 }

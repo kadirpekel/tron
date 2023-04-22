@@ -46,6 +46,7 @@ typedef struct Scope
 
 Scope *push_scope(Scope *parent, void *function_ref);
 Scope *pop_scope(Scope *scope);
+void *find_enclosing_function_ref(Scope* scope);
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info);
 Symbol *lookup_symbol(Scope *scope, char *name);
 void dispose_scope(Scope *scope);

@@ -35,6 +35,16 @@ Scope *pop_scope(Scope *scope)
     return parent;
 }
 
+void *find_enclosing_function_ref(Scope* scope)
+{
+    void *function_ref = scope->function_ref;
+    while (function_ref == NULL && scope->parent != NULL)
+    {
+        function_ref = scope->parent->function_ref;
+    }
+    return function_ref;
+}
+
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info)
 {
     Symbol *symbol = malloc(sizeof(Symbol));

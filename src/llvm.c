@@ -279,19 +279,9 @@ void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
     }
 }
 
-LLVMValueRef find_enclosing_function_ref(Llvm *llvm)
-{
-    LLVMValueRef function_ref = llvm->scope->function_ref;
-    while (function_ref == NULL && llvm->scope->parent != NULL)
-    {
-        function_ref = llvm->scope->parent->function_ref;
-    }
-    return function_ref;
-}
-
 void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
-    LLVMValueRef function_ref = find_enclosing_function_ref(llvm);
+    LLVMValueRef function_ref = find_enclosing_function_ref(llvm->scope);
     LLVMTypeRef type = get_llvm_type(llvm, variable->type_info);
     LLVMValueRef value;
 
@@ -335,23 +325,21 @@ void llvm_visit_function(Llvm *llvm, Function *function)
 
 void llvm_visit_if(Llvm *llvm, If *if_)
 {
-    LLVMValueRef function_ref = llvm->scope->function_ref;
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
+    LLVMValueRef function_ref = LLVMGetBasicBlockParent(current_block);
 
-    LLVMBasicBlockRef if_exit = NULL;
-
-    while (if_)
+    LLVMBasicBlockRef if_check = NULL;
+    while (if_ != NULL)
     {
-        LLVMBasicBlockRef if_check = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_check");
+
+        if (if_check == NULL) {
+            if_check = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_check");
+        }
         LLVMBasicBlockRef if_body = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_body");
+        LLVMBasicBlockRef if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
 
-        if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
-
-        // Add a branch instruction to the current if_check block
+        // Continue the control flow from the current block to the if_check block
         LLVMPositionBuilderAtEnd(llvm->builder, current_block);
-        LLVMBuildBr(llvm->builder, if_check);
-
-        LLVMPositionBuilderAtEnd(llvm->builder, if_check);
 
         if (if_->condition)
         {
@@ -367,17 +355,22 @@ void llvm_visit_if(Llvm *llvm, If *if_)
         llvm_visit_block(llvm, if_->body, if_body);
         LLVMBuildBr(llvm->builder, if_exit);
 
+        LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
+        if (if_->next) {
+            if_check = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_check");
+        }
+        
+
         current_block = if_exit;
         if_ = if_->next;
     }
-
-    LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
 }
+
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
-    LLVMValueRef function_ref = llvm->scope->function_ref;
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
+    LLVMValueRef function_ref = LLVMGetBasicBlockParent(current_block);
 
     LLVMBasicBlockRef while_check_block = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_check");
     LLVMBasicBlockRef while_body_block = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_body");
