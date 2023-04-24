@@ -160,6 +160,5 @@ typedef struct Token
 
 Token *new_token(TokenType type, char *buf, int len);
 void dispose_token(Token *token);
-void print_token(Token *token);
 
 #endif

@@ -23,11 +23,9 @@
 Token *new_token(TokenType token_type, char *buf, int len)
 {
     Token *token = malloc(sizeof(Token));
-    token->length = len;
-    token->buffer = malloc((len + 1) * sizeof(char));
-    token->buffer[len] = '\0';
     token->token_type = token_type;
-    strncpy(token->buffer, buf, len);
+    token->buffer = strndup(buf, len);
+    token->length = len;
     return token;
 }
 
@@ -35,9 +33,4 @@ void dispose_token(Token *token)
 {
     free(token->buffer);
     free(token);
-}
-
-void print_token(Token *token)
-{
-    printf("[%d] %.*s\n", token->token_type, token->length, token->buffer);
 }

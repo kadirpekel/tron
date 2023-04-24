@@ -37,7 +37,7 @@ Bucket *new_bucket(char *key, void *value);
 HashTable *new_hash_table(size_t size);
 Bucket *insert_value(HashTable *table, char *key, void *value);
 Bucket *lookup_value(HashTable *table, char *key);
-void dispose_hash_table(HashTable *table);
-void dispose_bucket(Bucket *bucket);
+void dispose_hash_table(HashTable *table, void (*dispose_bucket_value)(void *));
+void dispose_bucket(Bucket *bucket, void (*dispose_bucket_value)(void *));
 
 #endif

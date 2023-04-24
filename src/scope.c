@@ -35,7 +35,7 @@ Scope *pop_scope(Scope *scope)
     return parent;
 }
 
-void *find_enclosing_function_ref(Scope* scope)
+void *find_enclosing_function_ref(Scope *scope)
 {
     void *function_ref = scope->function_ref;
     while (function_ref == NULL && scope->parent != NULL)
@@ -75,8 +75,15 @@ Symbol *lookup_symbol(Scope *scope, char *name)
     return NULL;
 }
 
+void dispose_bucket_value(void *value)
+{
+    Symbol *symbol = (Symbol *)value;
+    free(symbol->name);
+    free(symbol);
+}
+
 void dispose_scope(Scope *scope)
 {
-    dispose_hash_table(scope->symbol_table);
+    dispose_hash_table(scope->symbol_table, dispose_bucket_value);
     free(scope);
 }

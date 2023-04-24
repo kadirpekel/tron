@@ -347,7 +347,6 @@ void llvm_visit_if(Llvm *llvm, If *if_)
             LLVMValueRef cond_value = llvm_visit_expression(llvm, if_->condition);
             if (if_->next)
             {
-
                 if_check = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_check");
                 LLVMBuildCondBr(llvm->builder, cond_value, if_body, if_check);
             }

@@ -31,19 +31,18 @@ Node *new_node(NodeType nodeType, void *data)
 Variable *new_variable(char *name, TypeInfo *type_info, Assignment *assignment)
 {
     Variable *variable = malloc(sizeof(Variable));
-    variable->name = malloc((strlen(name) + 1) * sizeof(char));
-    strcpy(variable->name, name);
+    variable->name = strdup(name);
     variable->assignment = assignment;
     variable->type_info = type_info;
+    variable->next = NULL;
     return variable;
 }
 
 Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expression)
 {
     Assignment *assignment = malloc(sizeof(Assignment));
-    assignment->name = malloc((strlen(name) + 1) * sizeof(char));
+    assignment->name = strdup(name);
     assignment->type_info = type_info;
-    strcpy(assignment->name, name);
     assignment->expression = expression;
     return assignment;
 }
@@ -51,9 +50,8 @@ Assignment *new_assignment(char *name, TypeInfo *type_info, Expression *expressi
 Call *new_call(char *name, TypeInfo *type_info, Expression *expression)
 {
     Call *call = malloc(sizeof(Call));
-    call->name = malloc((strlen(name) + 1) * sizeof(char));
+    call->name = strdup(name);
     call->type_info = type_info;
-    strcpy(call->name, name);
     call->expression = expression;
     return call;
 }
@@ -102,16 +100,14 @@ TypeInfo *new_type_info(Type type)
 Name *new_name(char *value)
 {
     Name *name = malloc(sizeof(Name));
-    name->value = malloc((strlen(value) + 1) * sizeof(char));
-    strcpy(name->value, value);
+    name->value = strdup(value);
     return name;
 }
 
 Function *new_function(char *name, TypeInfo *type_info, Variable *params, Block *body)
 {
     Function *function = malloc(sizeof(Function));
-    function->name = malloc((strlen(name) + 1) * sizeof(char));
-    strcpy(function->name, name);
+    function->name = strdup(name);
     function->type_info = type_info;
     function->params = params;
     function->body = body;
@@ -142,72 +138,143 @@ Block *new_block(Node *statements)
     return block;
 }
 
+void dispose_block(Block *block)
+{
+    if (block == NULL)
+    {
+        return;
+    }
+    dispose_node(block->statements);
+    free(block);
+}
+
+void dispose_type_info(TypeInfo *type_info)
+{
+    if (type_info == NULL)
+    {
+        return;
+    }
+    dispose_type_info(type_info->next);
+    free(type_info);
+}
+
 void dispose_variable(Variable *variable)
 {
-    // Free associated resources up here
-
+    if (variable == NULL)
+    {
+        return;
+    }
+    dispose_variable(variable->next);
+    dispose_assignment(variable->assignment);
+    dispose_type_info(variable->type_info);
+    free(variable->name);
     free(variable);
 }
 
 void dispose_expression(Expression *expression)
 {
-    // Free associated resources up here
-
+    if (expression == NULL)
+    {
+        return;
+    }
+    dispose_expression(expression->next);
+    dispose_expression(expression->left);
+    dispose_expression(expression->right);
+    dispose_node(expression->node);
+    dispose_token(expression->token);
     free(expression);
 }
 
 void dispose_integer(Integer *integer)
 {
-    // Free associated resources up here
-
+    if (integer == NULL)
+    {
+        return;
+    }
     free(integer);
 }
 
 void dispose_float(Float *float_)
 {
-    // Free associated resources up here
-
+    if (float_ == NULL)
+    {
+        return;
+    }
     free(float_);
 }
 
 void dispose_assignment(Assignment *assignment)
 {
-    // Free associated resources up here
-
+    if (assignment == NULL)
+    {
+        return;
+    }
+    dispose_type_info(assignment->type_info);
+    dispose_expression(assignment->expression);
+    free(assignment->name);
     free(assignment);
 }
 
 void dispose_call(Call *call)
 {
-    // Free associated resources up here
-
+    if (call == NULL)
+    {
+        return;
+    }
+    dispose_expression(call->expression);
+    dispose_type_info(call->type_info);
+    free(call->name);
     free(call);
 }
 
 void dispose_function(Function *function)
 {
-    // Free associated resources up here
-
+    if (function == NULL)
+    {
+        return;
+    }
+    dispose_variable(function->params);
+    dispose_block(function->body);
+    dispose_type_info(function->type_info);
+    free(function->name);
     free(function);
 }
 
 void dispose_return(Return *return_)
 {
-    // Free associated resources up here
-
+    if (return_ == NULL)
+    {
+        return;
+    }
+    dispose_expression(return_->expression);
     free(return_);
 }
+
 void dispose_if(If *if_)
 {
-    // Free associated resources up here
-
+    if (if_ == NULL)
+    {
+        return;
+    }
+    dispose_if(if_->next);
+    dispose_expression(if_->condition);
+    dispose_block(if_->body);
     free(if_);
 }
 void dispose_while(While *while_)
 {
-    // Free associated resources up here
-
+    if (while_ == NULL)
+    {
+        return;
+    }
+    dispose_expression(while_->condition);
+    dispose_block(while_->body);
     free(while_);
+}
+void dispose_name(Name *name)
+{
+    free(name->value);
+    free(name);
 }
 
 void dispose_one(Node *node)
@@ -219,6 +286,9 @@ void dispose_one(Node *node)
 
     switch (node->node_type)
     {
+    case N_NAME:
+        dispose_name((Name *)node->data);
+        break;
     case N_VARIABLE:
         dispose_variable((Variable *)node->data);
         break;
@@ -259,10 +329,10 @@ void dispose_one(Node *node)
 
 void dispose_node(Node *node)
 {
-    Node *current = node;
-    while (current)
+    if (node == NULL)
     {
-        dispose_one(current);
-        current = current->next;
+        return;
     }
+    dispose_node(node->next);
+    dispose_one(node);
 }

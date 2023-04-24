@@ -30,7 +30,7 @@ unsigned int hash(HashTable *table, char *str)
 Bucket *new_bucket(char *key, void *value)
 {
     Bucket *bucket = malloc(sizeof(Bucket));
-    bucket->key = key;
+    bucket->key = strdup(key);
     bucket->value = value;
     return bucket;
 }
@@ -73,24 +73,30 @@ Bucket *lookup_value(HashTable *table, char *key)
     return NULL;
 }
 
-void dispose_hash_table(HashTable *table)
+void dispose_hash_table(HashTable *table, void (*dispose_bucket_value)(void *))
 {
     int i;
     for (i = 0; i < table->size; i++)
     {
         Bucket *bucket = table->buckets[i];
-        dispose_bucket(bucket);
+        dispose_bucket(bucket, dispose_bucket_value);
     }
+    free(table->buckets);
     free(table);
 }
 
-void dispose_bucket(Bucket *bucket)
+void dispose_bucket(Bucket *bucket, void (*dispose_bucket_value)(void *))
 {
     if (bucket == NULL)
     {
         return;
     }
 
-    dispose_bucket(bucket->next);
+    dispose_bucket(bucket->next, dispose_bucket_value);
+    if (dispose_bucket_value != NULL)
+    {
+        dispose_bucket_value(bucket->value);
+    }
+    free(bucket->key);
     free(bucket);
 }
