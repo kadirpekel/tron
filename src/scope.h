@@ -33,6 +33,7 @@ typedef struct Symbol
 {
     char *name;
     void *symbol_info;
+    void (*dispose_symbol_info)(void *);
     SymbolType symbol_type;
     struct Symbol *next;
 } Symbol;
@@ -40,11 +41,12 @@ typedef struct Symbol
 typedef struct Scope
 {
     struct Scope *parent;
+    void (*dispose_symbol_info)(void *);
     HashTable *symbol_table;
     void *function_ref;
 } Scope;
 
-Scope *push_scope(Scope *parent, void *function_ref);
+Scope *push_scope(Scope *parent, void *function_ref, void (*dispose_symbol_info)(void *));
 Scope *pop_scope(Scope *scope);
 void *find_enclosing_function_ref(Scope *scope);
 Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info);

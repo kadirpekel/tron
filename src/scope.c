@@ -19,11 +19,12 @@
 
 #include "scope.h"
 
-Scope *push_scope(Scope *parent, void *function_ref)
+Scope *push_scope(Scope *parent, void *function_ref, void (*dispose_symbol_info)(void *))
 {
     Scope *scope = malloc(sizeof(Scope));
     scope->parent = parent;
     scope->function_ref = function_ref;
+    scope->dispose_symbol_info = dispose_symbol_info;
     scope->symbol_table = new_hash_table(SYMBOL_TABLE_SIZE);
     return scope;
 }
@@ -51,7 +52,7 @@ Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *sy
     symbol->name = strdup(name);
     symbol->symbol_type = symbol_type;
     symbol->symbol_info = symbol_info;
-
+    symbol->dispose_symbol_info = scope->dispose_symbol_info;
     Bucket *bucket = insert_value(scope->symbol_table, symbol->name, symbol);
     if (bucket != NULL)
     {
@@ -78,6 +79,10 @@ Symbol *lookup_symbol(Scope *scope, char *name)
 void dispose_bucket_value(void *value)
 {
     Symbol *symbol = (Symbol *)value;
+    if (symbol->dispose_symbol_info != NULL)
+    {
+        symbol->dispose_symbol_info(symbol->symbol_info);
+    }
     free(symbol->name);
     free(symbol);
 }

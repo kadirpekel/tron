@@ -35,7 +35,7 @@ Parser *new_parser(FILE *file)
 {
     Parser *p = malloc(sizeof(Parser));
     p->l = new_lexer(file);
-    p->scope = push_scope(NULL, NULL);
+    p->scope = push_scope(NULL, NULL, (void (*)(void *))dispose_type_info);
     p->depth = 0;
 
     // Global builtins
@@ -134,7 +134,7 @@ Symbol *accept_type(Parser *p)
 
 void enter_scope(Parser *p, Function *function)
 {
-    p->scope = push_scope(p->scope, function);
+    p->scope = push_scope(p->scope, function, (void (*)(void *))dispose_type_info);
     p->depth++;
 }
 
@@ -233,12 +233,13 @@ Expression *parse_unary_expression(Parser *p)
         {
             parse_error(p, "Operand is missing");
         }
+        TypeInfo *type_info = memdup(operand->type_info, sizeof(TypeInfo));
         Expression *expression = new_expression(
             opToken,
             operand,
             NULL,
             NULL,
-            operand->type_info);
+            type_info);
         return expression;
     }
 
@@ -273,8 +274,8 @@ Expression *parse_binary_expression(Parser *p, int min_precedence)
                 {
                     parse_error(p, "Expected expression after binary operator");
                 }
-
-                left = new_expression(op_token, left, right, NULL, left->type_info);
+                TypeInfo *type_info = memdup(left->type_info, sizeof(TypeInfo));
+                left = new_expression(op_token, left, right, NULL, type_info);
                 goto end;
             }
         }
@@ -408,8 +409,8 @@ Assignment *parse_assignment(Parser *p, Symbol *symbol)
                 parse_error(p, "Variable type does not match with expression type");
             }
         }
-
-        assignment = new_assignment(symbol->name, type_info, expression);
+        TypeInfo *assignment_type_info = memdup(type_info, sizeof(TypeInfo));
+        assignment = new_assignment(symbol->name, assignment_type_info, expression);
         dispose_token(assign_token);
     }
     return assignment;
@@ -452,7 +453,8 @@ Variable *parse_param(Parser *p)
             parse_error(p, "Variable type can not be resolved");
         }
 
-        param = new_variable(name_token->buffer, type_info, assignment);
+        TypeInfo *variable_type_info = memdup(type_info, sizeof(TypeInfo));
+        param = new_variable(name_token->buffer, variable_type_info, assignment);
         dispose_token(name_token);
     }
     return param;
@@ -481,12 +483,12 @@ Return *parse_return(Parser *p)
     if ((return_token = accept_keyword(p, RETURN)) != NULL)
     {
         Function *function_ref = find_enclosing_function_ref(p->scope);
-        if (function_ref == NULL) {
+        if (function_ref == NULL)
+        {
             parse_error(p, "Return statements are not allowed at root level");
         }
 
         return_ = new_return(parse_expression(p));
-        
 
         if (function_ref->type_info->type == TYPE_INFER)
         {
@@ -496,7 +498,9 @@ Return *parse_return(Parser *p)
             }
             else
             {
-                function_ref->type_info = return_->expression->type_info;
+                TypeInfo *function_type_info = memdup(return_->expression->type_info, sizeof(TypeInfo));
+                dispose_type_info(function_ref->type_info);
+                function_ref->type_info = function_type_info;
             }
         }
         else
@@ -568,7 +572,8 @@ Function *parse_function(Parser *p)
             type_info = new_type_info(TYPE_INFER);
         }
 
-        function = new_function(name_token->buffer, type_info, params, NULL);
+        void *function_type_info = memdup(type_info, sizeof(TypeInfo));
+        function = new_function(name_token->buffer, function_type_info, params, NULL);
 
         function->body = parse_block(p, function);
 
@@ -577,7 +582,7 @@ Function *parse_function(Parser *p)
             parse_error(p, "Function body is missing");
         }
 
-        if (!insert_symbol(p->scope, function->name, SYMBOL_FUNCTION, function->type_info))
+        if (!insert_symbol(p->scope, function->name, SYMBOL_FUNCTION, type_info))
         {
             parse_error(p, "Symbol already exists");
         }
@@ -594,8 +599,9 @@ If *parse_single_if(Parser *p)
 
     if ((if_token = accept_keyword(p, IF)) != NULL)
     {
-        Function* function_ref = find_enclosing_function_ref(p->scope);
-        if (function_ref == NULL) {
+        Function *function_ref = find_enclosing_function_ref(p->scope);
+        if (function_ref == NULL)
+        {
             parse_error(p, "If statements are not allowed at root level");
         }
 
@@ -665,11 +671,12 @@ While *parse_while(Parser *p)
 
     if ((while_token = accept_keyword(p, WHILE)) != NULL)
     {
-        Function* function_ref = find_enclosing_function_ref(p->scope);
-        if (function_ref == NULL) {
+        Function *function_ref = find_enclosing_function_ref(p->scope);
+        if (function_ref == NULL)
+        {
             parse_error(p, "While statements are not allowed at root level");
         }
-    
+
         dispose_token(expect_token(p, 1, T_LPAREN));
         Expression *condition = parse_expression(p);
         if (condition == NULL)

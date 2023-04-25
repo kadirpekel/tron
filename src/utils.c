@@ -14,32 +14,17 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MPARSER_H_
-#define MPARSER_H_
-
-#include "assert.h"
-#include "lexer.h"
-#include "node.h"
-#include "scope.h"
-#include "constants.h"
 #include "utils.h"
 
-typedef struct Parser
+void *memdup(void *src, size_t element_size)
 {
-    Lexer *l;
-    Scope *scope;
-    Token *token;
-    int depth;
-} Parser;
+    void *dest = malloc(element_size);
+    if (dest == NULL)
+    {
+        fatal("Error allocating memory");
+    }
 
-Parser *new_parser(FILE *file);
-void dispose_parser(Parser *p);
-Expression *parse_term(Parser *p);
-Expression *parse_factor(Parser *p);
-Expression *parse_expression(Parser *p);
-Node *parse_statement(Parser *p);
-Expression *parse_binary_expression(Parser *p, int min_precedence);
-Expression *parse_unary_expression(Parser *p);
-Node *parse(Parser *p);
+    memcpy(dest, src, element_size);
 
-#endif
+    return dest;
+}

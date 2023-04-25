@@ -306,7 +306,7 @@ LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, Block *block, LLVMBasicBlockRef l
     LLVMValueRef function_ref = LLVMGetBasicBlockParent(llvm_block);
     if (block->statements != NULL)
     {
-        llvm->scope = push_scope(llvm->scope, function_ref);
+        llvm->scope = push_scope(llvm->scope, function_ref, NULL);
         llvm_visit(llvm, block->statements);
         llvm->scope = pop_scope(llvm->scope);
     }
@@ -448,7 +448,7 @@ Llvm *new_llvm()
     // LLVMContextSetOpaquePointers(llvm->context, 0);
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->scope = push_scope(NULL, NULL);
+    llvm->scope = push_scope(NULL, NULL, NULL);
 
     LLVMTypeRef param_types[] = {LLVMInt32TypeInContext(llvm->context)};
     LLVMTypeRef type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), param_types, 1, 0);

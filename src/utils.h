@@ -14,32 +14,13 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef MPARSER_H_
-#define MPARSER_H_
+#ifndef MUTILS_H_
+#define MUTILS_H_
 
+#include <stdlib.h>
+#include <string.h>
 #include "assert.h"
-#include "lexer.h"
-#include "node.h"
-#include "scope.h"
-#include "constants.h"
-#include "utils.h"
 
-typedef struct Parser
-{
-    Lexer *l;
-    Scope *scope;
-    Token *token;
-    int depth;
-} Parser;
-
-Parser *new_parser(FILE *file);
-void dispose_parser(Parser *p);
-Expression *parse_term(Parser *p);
-Expression *parse_factor(Parser *p);
-Expression *parse_expression(Parser *p);
-Node *parse_statement(Parser *p);
-Expression *parse_binary_expression(Parser *p, int min_precedence);
-Expression *parse_unary_expression(Parser *p);
-Node *parse(Parser *p);
+void *memdup(void *src, size_t element_size);
 
 #endif
