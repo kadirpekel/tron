@@ -22,7 +22,6 @@
 #include "node.h"
 #include "scope.h"
 #include "constants.h"
-#include "utils.h"
 
 typedef struct Parser
 {

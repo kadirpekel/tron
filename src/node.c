@@ -19,6 +19,17 @@
 
 #include "node.h"
 
+TypeInfo *dup_type_info(TypeInfo *type_info)
+{
+    if (type_info == NULL)
+    {
+        return NULL;
+    }
+    TypeInfo *dup = memdup(type_info, sizeof(TypeInfo));
+    dup->next = dup_type_info(type_info->next);
+    return dup;
+}
+
 Node *new_node(NodeType nodeType, void *data)
 {
     Node *node = malloc(sizeof(Node));

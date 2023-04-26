@@ -20,6 +20,7 @@
 #include "assert.h"
 #include "token.h"
 #include "type.h"
+#include "utils.h"
 
 typedef struct TypeInfo
 {
@@ -157,5 +158,7 @@ void dispose_return(Return *return_);
 void dispose_type_info(TypeInfo *type_info);
 void dispose_if(If *if_);
 void dispose_while(While *while_);
+
+TypeInfo *dup_type_info(TypeInfo *type_info);
 
 #endif

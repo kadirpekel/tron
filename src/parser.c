@@ -150,7 +150,7 @@ TypeInfo *parse_type_info(Parser *p)
     Symbol *symbol;
     if ((symbol = accept_type(p)) != NULL)
     {
-        type_info = new_type_info(((TypeInfo *)symbol->symbol_info)->type);
+        type_info = dup_type_info(symbol->symbol_info);
     }
     return type_info;
 }
@@ -216,7 +216,8 @@ Call *parse_call(Parser *p, Symbol *symbol)
             dispose_token(commaToken);
         }
 
-        call = new_call(symbol->name, symbol->symbol_info, expression);
+        TypeInfo *call_type_info = dup_type_info(symbol->symbol_info);
+        call = new_call(symbol->name, call_type_info, expression);
         dispose_token(expect_token(p, 1, T_RPAREN));
         dispose_token(lparen_token);
     }
@@ -233,7 +234,7 @@ Expression *parse_unary_expression(Parser *p)
         {
             parse_error(p, "Operand is missing");
         }
-        TypeInfo *type_info = memdup(operand->type_info, sizeof(TypeInfo));
+        TypeInfo *type_info = dup_type_info(operand->type_info);
         Expression *expression = new_expression(
             opToken,
             operand,
@@ -274,7 +275,7 @@ Expression *parse_binary_expression(Parser *p, int min_precedence)
                 {
                     parse_error(p, "Expected expression after binary operator");
                 }
-                TypeInfo *type_info = memdup(left->type_info, sizeof(TypeInfo));
+                TypeInfo *type_info = dup_type_info(left->type_info);
                 left = new_expression(op_token, left, right, NULL, type_info);
                 goto end;
             }
@@ -344,6 +345,7 @@ Expression *parse_factor(Parser *p)
             else if (leaf_token->token_type == T_NAME)
             {
                 Symbol *symbol = lookup_symbol(p->scope, leaf_token->buffer);
+                TypeInfo *expression_type_info = dup_type_info(symbol->symbol_info);
                 if (symbol != NULL)
                 {
                     if (symbol->symbol_type == SYMBOL_FUNCTION)
@@ -353,21 +355,23 @@ Expression *parse_factor(Parser *p)
                         {
                             parse_error(p, "Function call missing");
                         }
+
                         expression = new_expression(
                             leaf_token,
                             NULL,
                             NULL,
                             new_node(N_CALL, call),
-                            symbol->symbol_info);
+                            expression_type_info);
                     }
                     else if (symbol->symbol_type == SYMBOL_VARIABLE)
                     {
+
                         expression = new_expression(
                             leaf_token,
                             NULL,
                             NULL,
                             new_node(N_NAME, new_name(leaf_token->buffer)),
-                            symbol->symbol_info);
+                            expression_type_info);
                     }
                     else
                     {
@@ -409,7 +413,7 @@ Assignment *parse_assignment(Parser *p, Symbol *symbol)
                 parse_error(p, "Variable type does not match with expression type");
             }
         }
-        TypeInfo *assignment_type_info = memdup(type_info, sizeof(TypeInfo));
+        TypeInfo *assignment_type_info = dup_type_info(type_info);
         assignment = new_assignment(symbol->name, assignment_type_info, expression);
         dispose_token(assign_token);
     }
@@ -453,7 +457,7 @@ Variable *parse_param(Parser *p)
             parse_error(p, "Variable type can not be resolved");
         }
 
-        TypeInfo *variable_type_info = memdup(type_info, sizeof(TypeInfo));
+        TypeInfo *variable_type_info = dup_type_info(type_info);
         param = new_variable(name_token->buffer, variable_type_info, assignment);
         dispose_token(name_token);
     }
@@ -498,7 +502,7 @@ Return *parse_return(Parser *p)
             }
             else
             {
-                TypeInfo *function_type_info = memdup(return_->expression->type_info, sizeof(TypeInfo));
+                TypeInfo *function_type_info = dup_type_info(return_->expression->type_info);
                 dispose_type_info(function_ref->type_info);
                 function_ref->type_info = function_type_info;
             }
@@ -572,7 +576,7 @@ Function *parse_function(Parser *p)
             type_info = new_type_info(TYPE_INFER);
         }
 
-        void *function_type_info = memdup(type_info, sizeof(TypeInfo));
+        void *function_type_info = dup_type_info(type_info);
         function = new_function(name_token->buffer, function_type_info, params, NULL);
 
         function->body = parse_block(p, function);
