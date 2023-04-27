@@ -19,6 +19,19 @@
 
 #include "node.h"
 
+ScopeInfo *new_scope_info(Function *function, bool is_loop)
+{
+    ScopeInfo *scope_info = malloc(sizeof(ScopeInfo));
+    scope_info->function = function;
+    scope_info->is_loop = is_loop;
+    return scope_info;
+}
+
+void dispose_scope_info(ScopeInfo *scope_info)
+{
+    free(scope_info);
+}
+
 TypeInfo *dup_type_info(TypeInfo *type_info)
 {
     if (type_info == NULL)
@@ -77,6 +90,18 @@ Expression *new_expression(Token *token, Expression *left, Expression *right, No
     expression->type_info = type_info;
     expression->next = NULL;
     return expression;
+}
+
+Break *new_break()
+{
+    Break *break_ = malloc(sizeof(Break));
+    return break_;
+}
+
+Continue *new_continue()
+{
+    Continue *continue_ = malloc(sizeof(Continue));
+    return continue_;
 }
 
 Return *new_return(Expression *expression)
@@ -157,6 +182,16 @@ void dispose_block(Block *block)
     }
     dispose_node(block->statements);
     free(block);
+}
+
+void dispose_break(Break *break_)
+{
+    free(break_);
+}
+
+void dispose_continue(Continue *continue_)
+{
+    free(continue_);
 }
 
 void dispose_type_info(TypeInfo *type_info)
@@ -323,6 +358,12 @@ void dispose_one(Node *node)
         break;
     case N_RETURN:
         dispose_return((Return *)node->data);
+        break;
+    case N_BREAK:
+        dispose_break((Break *)node->data);
+        break;
+    case N_CONTINUE:
+        dispose_continue((Continue *)node->data);
         break;
     case N_IF:
         dispose_if((If *)node->data);

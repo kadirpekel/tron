@@ -18,8 +18,8 @@ PROJECT = tron
 
 CC = gcc
 CPPFLAGS = -Wall -g
-CFLAGS = `llvm-config --cflags` -fsanitize=address -fno-omit-frame-pointer -g -O1
-LDFLAGS = `llvm-config --ldflags` -fsanitize=address 
+CFLAGS = `llvm-config --cflags`
+LDFLAGS = `llvm-config --ldflags`
 LIBS = `llvm-config --libs`
 SRC_DIR = src
 OBJ_DIR = obj
@@ -41,8 +41,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 fixture: $(OBJ_DIR)/corelib.o $(OBJ_DIR)/$(PROJECT)
 	$(OBJ_DIR)/$(PROJECT) example/$(FIXTURE).tr $(OBJ_DIR)/$(FIXTURE).o
-	$(CC) -fsanitize=address $(OBJ_DIR)/$(FIXTURE).o $(OBJ_DIR)/corelib.o -o $(OBJ_DIR)/$(FIXTURE)
-	ASAN_OPTIONS=verbosity=0 $(OBJ_DIR)/$(FIXTURE)
+	$(CC) $(OBJ_DIR)/$(FIXTURE).o $(OBJ_DIR)/corelib.o -o $(OBJ_DIR)/$(FIXTURE)
+	$(OBJ_DIR)/$(FIXTURE)
 
 clean:
 	@rm -rf $(OBJ_DIR)

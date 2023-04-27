@@ -19,17 +19,30 @@
 
 #include "llvm.h"
 
-LlvmInfo *new_llvm_info(LLVMTypeRef type, LLVMValueRef value)
+LlvmScopeInfo *new_llvm_scope_info(LLVMValueRef function_ref, LLVMBasicBlockRef break_block, LLVMBasicBlockRef continue_block)
 {
-    LlvmInfo *llvm_info = malloc(sizeof(LlvmInfo));
-    llvm_info->type = type;
-    llvm_info->value = value;
-    return llvm_info;
+    LlvmScopeInfo *llvm_scope_info = malloc(sizeof(LlvmScopeInfo));
+    llvm_scope_info->function_ref = function_ref;
+    llvm_scope_info->break_block = break_block;
+    llvm_scope_info->continue_block = continue_block;
+    return llvm_scope_info;
 }
 
-void dispose_llvm_info(LlvmInfo *llvm_info)
+void dispose_llvm_scope_info(LlvmScopeInfo *llvm_scope_info)
 {
-    free(llvm_info);
+}
+
+LlvmSymbolInfo *new_llvm_symbol_info(LLVMTypeRef type, LLVMValueRef value)
+{
+    LlvmSymbolInfo *llvm_symbol_info = malloc(sizeof(LlvmSymbolInfo));
+    llvm_symbol_info->type = type;
+    llvm_symbol_info->value = value;
+    return llvm_symbol_info;
+}
+
+void dispose_llvm_symbol_info(LlvmSymbolInfo *llvm_symbol_info)
+{
+    free(llvm_symbol_info);
 }
 
 LLVMTypeRef get_llvm_type(Llvm *llvm, TypeInfo *type_info)
@@ -84,8 +97,8 @@ LLVMValueRef llvm_visit_call(Llvm *llvm, Call *call)
         arg = arg->next;
     }
 
-    LlvmInfo *llvm_info = symbol->symbol_info;
-    return LLVMBuildCall2(llvm->builder, llvm_info->type, llvm_info->value, args, num_args, call->name);
+    LlvmSymbolInfo *llvm_symbol_info = (LlvmSymbolInfo *)symbol->info;
+    return LLVMBuildCall2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, args, num_args, call->name);
 }
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
@@ -95,8 +108,8 @@ LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
     {
         fatal("Symbol not found: %s\n", name->value);
     }
-    LlvmInfo *llvm_info = symbol->symbol_info;
-    return LLVMBuildLoad2(llvm->builder, llvm_info->type, llvm_info->value, name->value);
+    LlvmSymbolInfo *llvm_symbol_info = symbol->info;
+    return LLVMBuildLoad2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, name->value);
 }
 
 LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
@@ -259,14 +272,14 @@ void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
         fatal("Symbol not found");
     }
 
-    LlvmInfo *llvm_info = symbol->symbol_info;
+    LlvmSymbolInfo *llvm_symbol_info = symbol->info;
     LLVMValueRef expr_value = llvm_visit_expression(llvm, assignment->expression);
 
-    if (is_global_variable(llvm_info->value))
+    if (is_global_variable(llvm_symbol_info->value))
     {
         if (LLVMIsAConstant(expr_value))
         {
-            LLVMSetInitializer(llvm_info->value, expr_value);
+            LLVMSetInitializer(llvm_symbol_info->value, expr_value);
         }
         else
         {
@@ -275,13 +288,13 @@ void llvm_visit_assignment(Llvm *llvm, Assignment *assignment)
     }
     else
     {
-        LLVMBuildStore(llvm->builder, expr_value, llvm_info->value);
+        LLVMBuildStore(llvm->builder, expr_value, llvm_symbol_info->value);
     }
 }
 
 void llvm_visit_variable(Llvm *llvm, Variable *variable)
 {
-    LLVMValueRef function_ref = find_enclosing_function_ref(llvm->scope);
+    LLVMValueRef function_ref = find_enclosing_scope_info(llvm->scope, SCOPE_FUNCTION);
     LLVMTypeRef type = get_llvm_type(llvm, variable->type_info);
     LLVMValueRef value;
 
@@ -294,19 +307,18 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
         value = LLVMAddGlobal(llvm->module, type, variable->name);
         LLVMSetLinkage(value, LLVMExternalLinkage);
     }
-    insert_symbol(llvm->scope, variable->name, SYMBOL_VARIABLE, new_llvm_info(type, value));
+    insert_symbol(llvm->scope, SYMBOL_VARIABLE, variable->name, new_llvm_symbol_info(type, value));
     if (variable->assignment)
     {
         llvm_visit_assignment(llvm, variable->assignment);
     }
 }
 
-LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, Block *block, LLVMBasicBlockRef llvm_block)
+LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, ScopeType scope_type, Block *block, LLVMBasicBlockRef llvm_block, LlvmScopeInfo *llvm_scope_info)
 {
-    LLVMValueRef function_ref = LLVMGetBasicBlockParent(llvm_block);
     if (block->statements != NULL)
     {
-        llvm->scope = push_scope(llvm->scope, function_ref, NULL);
+        llvm->scope = push_scope(llvm->scope, scope_type, llvm_scope_info, NULL, NULL);
         llvm_visit(llvm, block->statements);
         llvm->scope = pop_scope(llvm->scope);
     }
@@ -317,10 +329,11 @@ void llvm_visit_function(Llvm *llvm, Function *function)
 {
     LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
-    insert_symbol(llvm->scope, function->name, SYMBOL_FUNCTION, new_llvm_info(type, value));
+    insert_symbol(llvm->scope, SYMBOL_FUNCTION, function->name, new_llvm_symbol_info(type, value));
     LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
-    llvm_visit_block(llvm, function->body, llvm_block);
+    LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(value, NULL, NULL);
+    llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, llvm_block, llvm_scope_info);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
@@ -361,13 +374,27 @@ void llvm_visit_if(Llvm *llvm, If *if_)
         }
 
         LLVMPositionBuilderAtEnd(llvm->builder, if_body);
-        llvm_visit_block(llvm, if_->body, if_body);
+
+        LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, NULL, NULL);
+        llvm_visit_block(llvm, SCOPE_IF, if_->body, if_body, llvm_scope_info);
         LLVMBuildBr(llvm->builder, if_exit);
 
         if_ = if_->next;
     }
 
     LLVMPositionBuilderAtEnd(llvm->builder, if_exit);
+}
+
+void llvm_visit_break(Llvm *llvm, Break *break_)
+{
+    LLVMBasicBlockRef while_check_block = (LLVMBasicBlockRef)find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LLVMBuildBr(llvm->builder, while_check_block);
+}
+
+void llvm_visit_continue(Llvm *llvm, Continue *continue_)
+{
+    LLVMBasicBlockRef while_check_block = (LLVMBasicBlockRef)find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LLVMBuildBr(llvm->builder, while_check_block);
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
@@ -388,6 +415,9 @@ void llvm_visit_while(Llvm *llvm, While *while_)
 
     LLVMPositionBuilderAtEnd(llvm->builder, while_body_block);
     llvm_visit(llvm, while_->body->statements);
+
+    LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, while_exit_block, while_check_block);
+    llvm_visit_block(llvm, SCOPE_WHILE, while_->body, while_body_block, llvm_scope_info);
     LLVMBuildBr(llvm->builder, while_check_block);
 
     LLVMPositionBuilderAtEnd(llvm->builder, while_exit_block);
@@ -424,6 +454,12 @@ void llvm_visit_statement(Llvm *llvm, Node *node)
     case N_RETURN:
         llvm_visit_return(llvm, (Return *)node->data);
         break;
+    case N_BREAK:
+        llvm_visit_break(llvm, (Break *)node->data);
+        break;
+    case N_CONTINUE:
+        llvm_visit_continue(llvm, (Continue *)node->data);
+        break;
     default:
         fprintf(stderr, "Unexpected node type: %d\n", node->node_type);
         exit(EXIT_FAILURE);
@@ -448,12 +484,14 @@ Llvm *new_llvm()
     // LLVMContextSetOpaquePointers(llvm->context, 0);
     llvm->module = LLVMModuleCreateWithNameInContext("default", llvm->context);
     llvm->builder = LLVMCreateBuilderInContext(llvm->context);
-    llvm->scope = push_scope(NULL, NULL, NULL);
+
+    LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, NULL, NULL);
+    llvm->scope = push_scope(NULL, SCOPE_ROOT, llvm_scope_info, (void (*)(void *))dispose_llvm_scope_info, (void (*)(void *))dispose_llvm_symbol_info);
 
     LLVMTypeRef param_types[] = {LLVMInt32TypeInContext(llvm->context)};
     LLVMTypeRef type = LLVMFunctionType(LLVMInt32TypeInContext(llvm->context), param_types, 1, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, "print_int", type);
-    insert_symbol(llvm->scope, "print_int", SYMBOL_FUNCTION, new_llvm_info(type, value));
+    insert_symbol(llvm->scope, SYMBOL_FUNCTION, "print_int", new_llvm_symbol_info(type, value));
 
     return llvm;
 }
@@ -468,6 +506,7 @@ void dispose_llvm(Llvm *llvm)
     LLVMDisposeBuilder(llvm->builder);
     LLVMDisposeModule(llvm->module);
     LLVMContextDispose(llvm->context);
+    pop_scope(llvm->scope);
     free(llvm);
 }
 

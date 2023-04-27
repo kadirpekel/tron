@@ -16,8 +16,8 @@
 
 #ifndef MPARSER_H_
 #define MPARSER_H_
+#include <assert.h>
 
-#include "assert.h"
 #include "lexer.h"
 #include "node.h"
 #include "scope.h"

@@ -17,6 +17,7 @@
 #ifndef MLLVM_H_
 #define MLLVM_H_
 
+#include <stdbool.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/ExecutionEngine.h>
@@ -28,11 +29,18 @@
 #include "scope.h"
 #include "node.h"
 
-typedef struct LlvmInfo
+typedef struct LlvmSymbolInfo
 {
     LLVMTypeRef type;
     LLVMValueRef value;
-} LlvmInfo;
+} LlvmSymbolInfo;
+
+typedef struct LlvmScopeInfo
+{
+    LLVMValueRef function_ref;
+    LLVMBasicBlockRef break_block;
+    LLVMBasicBlockRef continue_block;
+} LlvmScopeInfo;
 
 typedef struct Llvm
 {
@@ -43,13 +51,15 @@ typedef struct Llvm
 } Llvm;
 
 Llvm *new_llvm();
-LlvmInfo *new_llvm_info(LLVMTypeRef type, LLVMValueRef value);
+LlvmSymbolInfo *new_llvm_symbol_info(LLVMTypeRef type, LLVMValueRef value);
+LlvmScopeInfo *new_llvm_scope_info(LLVMValueRef function_ref, LLVMBasicBlockRef break_block, LLVMBasicBlockRef continue_block);
 void llvm_visit(Llvm *llvm, Node *node);
 LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression);
 void llvm_dump(Llvm *llvm, FILE *out);
 void llvm_compile(Llvm *llvm, char *output);
 void llvm_validate(Llvm *llvm);
 void dispose_llvm(Llvm *llvm);
-void dispose_llvm_info(LlvmInfo *llvm_info);
+void dispose_llvm_symbol_info(LlvmSymbolInfo *llvm_symbol_info);
+void dispose_llvm_scope_info(LlvmScopeInfo *llvm_scope_info);
 
 #endif

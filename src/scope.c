@@ -19,13 +19,35 @@
 
 #include "scope.h"
 
-Scope *push_scope(Scope *parent, void *function_ref, void (*dispose_symbol_info)(void *))
+Scope *push_scope(Scope *parent, ScopeType type, void *info, void (*dispose_info)(void *), void (*dispose_symbol_info)(void *))
 {
+
     Scope *scope = malloc(sizeof(Scope));
     scope->parent = parent;
-    scope->function_ref = function_ref;
-    scope->dispose_symbol_info = dispose_symbol_info;
+    scope->info = info;
+    scope->type = type;
     scope->symbol_table = new_hash_table(SYMBOL_TABLE_SIZE);
+    if (dispose_info == NULL)
+    {
+        assert(scope->parent != NULL);
+        assert(scope->parent->dispose_info != NULL);
+        scope->dispose_info = scope->parent->dispose_info;
+    }
+    else
+    {
+        scope->dispose_info = dispose_info;
+    }
+
+    if (dispose_symbol_info == NULL)
+    {
+        assert(scope->parent != NULL);
+        assert(scope->parent->dispose_symbol_info != NULL);
+        scope->dispose_symbol_info = scope->parent->dispose_symbol_info;
+    }
+    else
+    {
+        scope->dispose_symbol_info = dispose_symbol_info;
+    }
     return scope;
 }
 
@@ -36,23 +58,27 @@ Scope *pop_scope(Scope *scope)
     return parent;
 }
 
-void *find_enclosing_function_ref(Scope *scope)
+void *find_enclosing_scope_info(Scope *scope, ScopeType scope_type)
 {
-    void *function_ref = scope->function_ref;
-    while (function_ref == NULL && scope->parent != NULL)
+    Scope *current = scope;
+    while (current != NULL)
     {
-        function_ref = scope->parent->function_ref;
+        if (current->type == scope_type)
+        {
+            return scope->info;
+        }
+        current = current->parent;
     }
-    return function_ref;
+    return NULL;
 }
 
-Symbol *insert_symbol(Scope *scope, char *name, SymbolType symbol_type, void *symbol_info)
+Symbol *insert_symbol(Scope *scope, SymbolType type, char *name, void *info)
 {
     Symbol *symbol = malloc(sizeof(Symbol));
     symbol->name = strdup(name);
-    symbol->symbol_type = symbol_type;
-    symbol->symbol_info = symbol_info;
-    symbol->dispose_symbol_info = scope->dispose_symbol_info;
+    symbol->info = info;
+    symbol->type = type;
+    symbol->dispose_info = scope->dispose_symbol_info;
     Bucket *bucket = insert_value(scope->symbol_table, symbol->name, symbol);
     if (bucket != NULL)
     {
@@ -79,9 +105,9 @@ Symbol *lookup_symbol(Scope *scope, char *name)
 void dispose_bucket_value(void *value)
 {
     Symbol *symbol = (Symbol *)value;
-    if (symbol->dispose_symbol_info != NULL)
+    if (symbol->dispose_info != NULL)
     {
-        symbol->dispose_symbol_info(symbol->symbol_info);
+        symbol->dispose_info(symbol->info);
     }
     free(symbol->name);
     free(symbol);
@@ -90,5 +116,9 @@ void dispose_bucket_value(void *value)
 void dispose_scope(Scope *scope)
 {
     dispose_hash_table(scope->symbol_table, dispose_bucket_value);
+    if (scope->dispose_info != NULL)
+    {
+        scope->dispose_info(scope->info);
+    }
     free(scope);
 }
