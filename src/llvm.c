@@ -30,6 +30,7 @@ LlvmScopeInfo *new_llvm_scope_info(LLVMValueRef function_ref, LLVMBasicBlockRef 
 
 void dispose_llvm_scope_info(LlvmScopeInfo *llvm_scope_info)
 {
+    free(llvm_scope_info);
 }
 
 LlvmSymbolInfo *new_llvm_symbol_info(LLVMTypeRef type, LLVMValueRef value)
@@ -387,14 +388,14 @@ void llvm_visit_if(Llvm *llvm, If *if_)
 
 void llvm_visit_break(Llvm *llvm, Break *break_)
 {
-    LLVMBasicBlockRef while_check_block = (LLVMBasicBlockRef)find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
-    LLVMBuildBr(llvm->builder, while_check_block);
+    LlvmScopeInfo *llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LLVMBuildBr(llvm->builder, llvm_scope_info->break_block);
 }
 
 void llvm_visit_continue(Llvm *llvm, Continue *continue_)
 {
-    LLVMBasicBlockRef while_check_block = (LLVMBasicBlockRef)find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
-    LLVMBuildBr(llvm->builder, while_check_block);
+    LlvmScopeInfo *llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LLVMBuildBr(llvm->builder, llvm_scope_info->continue_block);
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
@@ -414,8 +415,6 @@ void llvm_visit_while(Llvm *llvm, While *while_)
     LLVMBuildCondBr(llvm->builder, cond_value, while_body_block, while_exit_block);
 
     LLVMPositionBuilderAtEnd(llvm->builder, while_body_block);
-    llvm_visit(llvm, while_->body->statements);
-
     LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, while_exit_block, while_check_block);
     llvm_visit_block(llvm, SCOPE_WHILE, while_->body, while_body_block, llvm_scope_info);
     LLVMBuildBr(llvm->builder, while_check_block);

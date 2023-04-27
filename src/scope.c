@@ -65,7 +65,7 @@ void *find_enclosing_scope_info(Scope *scope, ScopeType scope_type)
     {
         if (current->type == scope_type)
         {
-            return scope->info;
+            return current->info;
         }
         current = current->parent;
     }

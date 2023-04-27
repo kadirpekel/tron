@@ -1,9 +1,11 @@
-var i = 1;
-i = 2;
-
 func main() {
-    if (i == 2) {
-        print_int(i);
+    var i = 0;
+    while (i < 10) {
+        i = i + 1;
+        if (i == 5) {
+            break;
+        }
     }
+    print_int(i);
     return 0;
 }
