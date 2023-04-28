@@ -547,7 +547,7 @@ Return *parse_return(Parser *p)
         {
             if (return_->expression->type_info->type != scope_info->function->type_info->type)
             {
-                parse_error(p, "Invalid or inconsistent return type");
+                parse_error(p, "Returned type should match the enclosing function type");
             }
         }
 
@@ -617,8 +617,7 @@ Function *parse_function(Parser *p)
             type_info = new_type_info(TYPE_INFER);
         }
 
-        void *function_type_info = dup_type_info(type_info);
-        function = new_function(name_token->buffer, function_type_info, params, NULL);
+        function = new_function(name_token->buffer, type_info, params, NULL);
 
         function->body = parse_block(p, SCOPE_FUNCTION, function, false);
 
@@ -627,7 +626,8 @@ Function *parse_function(Parser *p)
             parse_error(p, "Function body is missing");
         }
 
-        if (!insert_symbol(p->scope, SYMBOL_FUNCTION, function->name, type_info))
+        TypeInfo *symbol_type_info = dup_type_info(function->type_info);
+        if (!insert_symbol(p->scope, SYMBOL_FUNCTION, function->name, symbol_type_info))
         {
             parse_error(p, "Symbol already exists");
         }
