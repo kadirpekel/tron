@@ -363,7 +363,7 @@ Expression *parse_factor(Parser *p)
                             new_node(N_CALL, call),
                             expression_type_info);
                     }
-                    else if (symbol->type == SYMBOL_VARIABLE)
+                    else if (symbol->type == SYMBOL_VARIABLE || symbol->type == SYMBOL_ARG)
                     {
 
                         expression = new_expression(
@@ -420,7 +420,7 @@ Assignment *parse_assignment(Parser *p, Symbol *symbol)
     return assignment;
 }
 
-Variable *parse_param(Parser *p)
+Variable *parse_param(Parser *p, SymbolType symbol_type)
 {
     Variable *param = NULL;
     Token *name_token;
@@ -445,7 +445,7 @@ Variable *parse_param(Parser *p)
             type_info = new_type_info(TYPE_INFER);
         }
 
-        Symbol *symbol = insert_symbol(p->scope, SYMBOL_VARIABLE, name_token->buffer, type_info);
+        Symbol *symbol = insert_symbol(p->scope, symbol_type, name_token->buffer, type_info);
         if (symbol == NULL)
         {
             parse_error(p, "Symbol already exists");
@@ -470,7 +470,7 @@ Variable *parse_variable(Parser *p)
     Token *var_token;
     if ((var_token = accept_keyword(p, VAR)) != NULL)
     {
-        param = parse_param(p);
+        param = parse_param(p, SYMBOL_VARIABLE);
         if (param == NULL)
         {
             parse_error(p, "Variable not initialized");
@@ -557,25 +557,22 @@ Return *parse_return(Parser *p)
     return return_;
 }
 
-Block *parse_block(Parser *p, ScopeType scope_type, Function *function, bool is_loop)
+Block *parse_block(Parser *p)
 {
     dispose_token(expect_token(p, 1, T_LBRACE));
-    ScopeInfo *scope_info = new_scope_info(function, is_loop);
-    enter_scope(p, scope_type, scope_info);
     Block *block = new_block(parse(p));
-    exit_scope(p);
     dispose_token(expect_token(p, 1, T_RBRACE));
     return block;
 }
 
-Variable *parse_params(Parser *p)
+Variable *parse_params(Parser *p, SymbolType symbol_type)
 {
-    Variable *param = parse_param(p);
+    Variable *param = parse_param(p, symbol_type);
     Variable *current = param;
     Token *comma_token = accept_token(p, 1, T_COMMA);
     while (comma_token != NULL)
     {
-        current->next = parse_param(p);
+        current->next = parse_param(p, symbol_type);
         current = current->next;
         comma_token = accept_token(p, 1, T_COMMA);
     }
@@ -593,33 +590,35 @@ Function *parse_function(Parser *p)
         {
             parse_error(p, "Functions are only allowed at root level");
         }
+
         Token *name_token = expect_token(p, 1, T_NAME);
 
+        function = new_function(name_token->buffer, NULL, NULL, NULL);
+        enter_scope(p, SCOPE_FUNCTION, new_scope_info(function, false));
+
         dispose_token(expect_token(p, 1, T_LPAREN));
-        Variable *params = parse_params(p);
+        function->params = parse_params(p, SYMBOL_ARG);
         dispose_token(expect_token(p, 1, T_RPAREN));
 
-        TypeInfo *type_info = NULL;
         Token *colon_token = NULL;
         if ((colon_token = accept_token(p, 1, T_COLON)) != NULL)
         {
-            type_info = parse_type_info(p);
+            function->type_info = parse_type_info(p);
 
-            if (type_info == NULL)
+            if (function->type_info == NULL)
             {
                 parse_error(p, "Type info is missing");
             }
             dispose_token(colon_token);
         }
 
-        if (type_info == NULL)
+        if (function->type_info == NULL)
         {
-            type_info = new_type_info(TYPE_INFER);
+            function->type_info = new_type_info(TYPE_INFER);
         }
 
-        function = new_function(name_token->buffer, type_info, params, NULL);
-
-        function->body = parse_block(p, SCOPE_FUNCTION, function, false);
+        function->body = parse_block(p);
+        exit_scope(p);
 
         if (function->body == NULL)
         {
@@ -631,6 +630,7 @@ Function *parse_function(Parser *p)
         {
             parse_error(p, "Symbol already exists");
         }
+
         dispose_token(name_token);
         dispose_token(def_token);
     }
@@ -659,7 +659,9 @@ If *parse_single_if(Parser *p)
         }
         dispose_token(expect_token(p, 1, T_RPAREN));
 
-        Block *body = parse_block(p, SCOPE_IF, NULL, false);
+        enter_scope(p, SCOPE_IF, new_scope_info(NULL, false));
+        Block *body = parse_block(p);
+        exit_scope(p);
 
         if (body == NULL)
         {
@@ -690,7 +692,9 @@ If *parse_if(Parser *p)
 
             if (next == NULL)
             {
-                Block *body = parse_block(p, SCOPE_IF, NULL, false);
+                enter_scope(p, SCOPE_IF, new_scope_info(NULL, false));
+                Block *body = parse_block(p);
+                exit_scope(p);
                 if (body != NULL)
                 {
                     current->next = new_if(NULL, body);
@@ -731,7 +735,10 @@ While *parse_while(Parser *p)
         }
         dispose_token(expect_token(p, 1, T_RPAREN));
 
-        Block *body = parse_block(p, SCOPE_WHILE, NULL, true);
+        enter_scope(p, SCOPE_WHILE, new_scope_info(NULL, true));
+        Block *body = parse_block(p);
+        exit_scope(p);
+
         if (body == NULL)
         {
             parse_error(p, "Body is missing");
@@ -753,7 +760,7 @@ Node *parse_namebiguity(Parser *p)
 
         if (symbol != NULL)
         {
-            if (symbol->type == SYMBOL_VARIABLE)
+            if (symbol->type == SYMBOL_VARIABLE || symbol->type == SYMBOL_ARG)
             {
                 Assignment *assignment = parse_assignment(p, symbol);
                 if (assignment == NULL)

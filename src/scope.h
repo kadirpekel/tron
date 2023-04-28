@@ -28,7 +28,8 @@ typedef enum SymbolType
 {
     SYMBOL_VARIABLE = 0,
     SYMBOL_FUNCTION = 1,
-    SYMBOL_TYPE = 2
+    SYMBOL_TYPE = 2,
+    SYMBOL_ARG = 3,
 } SymbolType;
 
 typedef enum ScopeType

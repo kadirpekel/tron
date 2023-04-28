@@ -110,8 +110,20 @@ LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
     {
         fatal("Symbol not found: %s\n", name->value);
     }
+
     LlvmSymbolInfo *llvm_symbol_info = symbol->info;
-    return LLVMBuildLoad2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, name->value);
+    if (symbol->type == SYMBOL_ARG)
+    {
+        return llvm_symbol_info->value;
+    }
+    else if (symbol->type == SYMBOL_VARIABLE)
+    {
+        return LLVMBuildLoad2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, name->value);
+    }
+    else
+    {
+        fatal("Invalid symbol type");
+    }
 }
 
 LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
@@ -337,12 +349,42 @@ LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, ScopeType scope_type, Block *bloc
 
 void llvm_visit_function(Llvm *llvm, Function *function)
 {
-    LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), NULL, 0, 0);
+
+    int num_args = 0;
+    Variable *param = function->params;
+    while (param != NULL)
+    {
+        num_args++;
+        param = param->next;
+    }
+
+    LLVMTypeRef *param_types = (LLVMTypeRef *)calloc(num_args, sizeof(LLVMTypeRef));
+    param = function->params;
+    for (int i = 0; i < num_args; ++i)
+    {
+        param_types[i] = get_llvm_type(llvm, param->type_info);
+        insert_symbol(llvm->scope, SYMBOL_ARG, param->name, new_llvm_symbol_info(param_types[i], NULL));
+        param = param->next;
+    }
+
+    LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), param_types, num_args, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
     insert_symbol(llvm->scope, SYMBOL_FUNCTION, function->name, new_llvm_symbol_info(type, value));
     LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
     LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(value, NULL, NULL);
+
+    // Update the values in the LlvmSymbolInfo for each parameter
+    param = function->params;
+    for (int i = 0; i < num_args; ++i)
+    {
+        LLVMValueRef arg_value = LLVMGetParam(value, i);
+        Symbol *symbol = lookup_symbol(llvm->scope, param->name);
+        LlvmSymbolInfo *llvm_symbol_info = symbol->info;
+        llvm_symbol_info->value = arg_value;
+        param = param->next;
+    }
+
     llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, llvm_block, NULL, llvm_scope_info);
 }
 
