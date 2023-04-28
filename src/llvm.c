@@ -90,7 +90,7 @@ LLVMValueRef llvm_visit_call(Llvm *llvm, Call *call)
         num_args++;
         arg = arg->next;
     }
-    LLVMValueRef *args = malloc(num_args * sizeof(LLVMValueRef));
+    LLVMValueRef *args = calloc(num_args, sizeof(LLVMValueRef));
     int i = 0;
     arg = call->expression;
     while (arg != NULL)
@@ -100,7 +100,10 @@ LLVMValueRef llvm_visit_call(Llvm *llvm, Call *call)
     }
 
     LlvmSymbolInfo *llvm_symbol_info = (LlvmSymbolInfo *)symbol->info;
-    return LLVMBuildCall2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, args, num_args, call->name);
+    LLVMValueRef llvm_call = LLVMBuildCall2(llvm->builder, llvm_symbol_info->type, llvm_symbol_info->value, args, num_args, call->name);
+    free(args);
+
+    return llvm_call;
 }
 
 LLVMValueRef llvm_visit_name(Llvm *llvm, Name *name)
@@ -369,7 +372,10 @@ void llvm_visit_function(Llvm *llvm, Function *function)
 
     LLVMTypeRef type = LLVMFunctionType(get_llvm_type(llvm, function->type_info), param_types, num_args, 0);
     LLVMValueRef value = LLVMAddFunction(llvm->module, function->name, type);
+    free(param_types);
+
     insert_symbol(llvm->scope, SYMBOL_FUNCTION, function->name, new_llvm_symbol_info(type, value));
+
     LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
     LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(value, NULL, NULL);
@@ -404,15 +410,11 @@ void llvm_visit_if(Llvm *llvm, If *if_)
         if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
     }
 
-    LLVMBasicBlockRef if_check = NULL;
+    LLVMBasicBlockRef if_check = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_check");
+    LLVMBuildBr(llvm->builder, if_check);
+
     while (if_ != NULL)
     {
-        if (if_check == NULL)
-        {
-            if_check = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_check");
-            LLVMBuildBr(llvm->builder, if_check);
-        }
-
         LLVMPositionBuilderAtEnd(llvm->builder, if_check);
 
         LLVMBasicBlockRef if_body = LLVMInsertBasicBlockInContext(llvm->context, if_exit, "if_body");
