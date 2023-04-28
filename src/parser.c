@@ -589,6 +589,10 @@ Function *parse_function(Parser *p)
 
     if ((def_token = accept_keyword(p, FUNCTION)) != NULL)
     {
+        if (p->scope->parent != NULL)
+        {
+            parse_error(p, "Functions are only allowed at root level");
+        }
         Token *name_token = expect_token(p, 1, T_NAME);
 
         dispose_token(expect_token(p, 1, T_LPAREN));

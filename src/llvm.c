@@ -25,6 +25,7 @@ LlvmScopeInfo *new_llvm_scope_info(LLVMValueRef function_ref, LLVMBasicBlockRef 
     llvm_scope_info->function_ref = function_ref;
     llvm_scope_info->break_block = break_block;
     llvm_scope_info->continue_block = continue_block;
+    llvm_scope_info->interrupt_block = NULL;
     return llvm_scope_info;
 }
 
@@ -315,12 +316,20 @@ void llvm_visit_variable(Llvm *llvm, Variable *variable)
     }
 }
 
-LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, ScopeType scope_type, Block *block, LLVMBasicBlockRef llvm_block, LlvmScopeInfo *llvm_scope_info)
+LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, ScopeType scope_type, Block *block, LLVMBasicBlockRef llvm_block, LLVMBasicBlockRef llvm_exit_block, LlvmScopeInfo *llvm_scope_info)
 {
     if (block->statements != NULL)
     {
         llvm->scope = push_scope(llvm->scope, scope_type, llvm_scope_info, NULL, NULL);
         llvm_visit(llvm, block->statements);
+        if (llvm_scope_info->interrupt_block != NULL)
+        {
+            LLVMBuildBr(llvm->builder, llvm_scope_info->interrupt_block);
+        }
+        else if (llvm_exit_block != NULL)
+        {
+            LLVMBuildBr(llvm->builder, llvm_exit_block);
+        }
         llvm->scope = pop_scope(llvm->scope);
     }
     return llvm_block;
@@ -334,14 +343,24 @@ void llvm_visit_function(Llvm *llvm, Function *function)
     LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
     LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
     LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(value, NULL, NULL);
-    llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, llvm_block, llvm_scope_info);
+    llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, llvm_block, NULL, llvm_scope_info);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
 {
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
     LLVMValueRef function_ref = LLVMGetBasicBlockParent(current_block);
-    LLVMBasicBlockRef if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
+    LLVMBasicBlockRef next_block = LLVMGetNextBasicBlock(current_block);
+
+    LLVMBasicBlockRef if_exit;
+    if (next_block != NULL)
+    {
+        if_exit = LLVMInsertBasicBlockInContext(llvm->context, next_block, "if_exit");
+    }
+    else
+    {
+        if_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "if_exit");
+    }
 
     LLVMBasicBlockRef if_check = NULL;
     while (if_ != NULL)
@@ -377,8 +396,7 @@ void llvm_visit_if(Llvm *llvm, If *if_)
         LLVMPositionBuilderAtEnd(llvm->builder, if_body);
 
         LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, NULL, NULL);
-        llvm_visit_block(llvm, SCOPE_IF, if_->body, if_body, llvm_scope_info);
-        LLVMBuildBr(llvm->builder, if_exit);
+        llvm_visit_block(llvm, SCOPE_IF, if_->body, if_body, if_exit, llvm_scope_info);
 
         if_ = if_->next;
     }
@@ -388,38 +406,48 @@ void llvm_visit_if(Llvm *llvm, If *if_)
 
 void llvm_visit_break(Llvm *llvm, Break *break_)
 {
-    LlvmScopeInfo *llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
-    LLVMBuildBr(llvm->builder, llvm_scope_info->break_block);
+    LlvmScopeInfo *enclosing_llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LlvmScopeInfo *llvm_scope_info = llvm->scope->info;
+    llvm_scope_info->interrupt_block = enclosing_llvm_scope_info->break_block;
 }
 
 void llvm_visit_continue(Llvm *llvm, Continue *continue_)
 {
-    LlvmScopeInfo *llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
-    LLVMBuildBr(llvm->builder, llvm_scope_info->continue_block);
+    LlvmScopeInfo *enclosing_llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
+    LlvmScopeInfo *llvm_scope_info = llvm->scope->info;
+    llvm_scope_info->interrupt_block = enclosing_llvm_scope_info->continue_block;
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
 {
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(llvm->builder);
     LLVMValueRef function_ref = LLVMGetBasicBlockParent(current_block);
+    LLVMBasicBlockRef next_block = LLVMGetNextBasicBlock(current_block);
 
-    LLVMBasicBlockRef while_check_block = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_check");
-    LLVMBasicBlockRef while_body_block = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_body");
-    LLVMBasicBlockRef while_exit_block = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_exit");
+    LLVMBasicBlockRef while_exit;
+    if (next_block != NULL)
+    {
+        while_exit = LLVMInsertBasicBlockInContext(llvm->context, next_block, "while_exit");
+    }
+    else
+    {
+        while_exit = LLVMAppendBasicBlockInContext(llvm->context, function_ref, "while_exit");
+    }
+
+    LLVMBasicBlockRef while_check = LLVMInsertBasicBlockInContext(llvm->context, while_exit, "while_check");
+    LLVMBasicBlockRef while_body = LLVMInsertBasicBlockInContext(llvm->context, while_exit, "while_body");
 
     LLVMPositionBuilderAtEnd(llvm->builder, current_block);
-    LLVMBuildBr(llvm->builder, while_check_block);
+    LLVMBuildBr(llvm->builder, while_check);
 
-    LLVMPositionBuilderAtEnd(llvm->builder, while_check_block);
+    LLVMPositionBuilderAtEnd(llvm->builder, while_check);
     LLVMValueRef cond_value = llvm_visit_expression(llvm, while_->condition);
-    LLVMBuildCondBr(llvm->builder, cond_value, while_body_block, while_exit_block);
+    LLVMBuildCondBr(llvm->builder, cond_value, while_body, while_exit);
 
-    LLVMPositionBuilderAtEnd(llvm->builder, while_body_block);
-    LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, while_exit_block, while_check_block);
-    llvm_visit_block(llvm, SCOPE_WHILE, while_->body, while_body_block, llvm_scope_info);
-    LLVMBuildBr(llvm->builder, while_check_block);
-
-    LLVMPositionBuilderAtEnd(llvm->builder, while_exit_block);
+    LLVMPositionBuilderAtEnd(llvm->builder, while_body);
+    LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(NULL, while_exit, while_check);
+    llvm_visit_block(llvm, SCOPE_WHILE, while_->body, while_body, while_check, llvm_scope_info);
+    LLVMPositionBuilderAtEnd(llvm->builder, while_exit);
 }
 
 void llvm_visit_return(Llvm *llvm, Return *return_)
@@ -469,9 +497,13 @@ void llvm_visit_statement(Llvm *llvm, Node *node)
 void llvm_visit(Llvm *llvm, Node *node)
 {
     Node *current = node;
-    while (current)
+    LlvmScopeInfo *scope_info = llvm->scope->info;
+    while (current != NULL)
     {
-        llvm_visit_statement(llvm, current);
+        if (scope_info->interrupt_block == NULL)
+        {
+            llvm_visit_statement(llvm, current);
+        }
         current = current->next;
     }
 }
@@ -543,6 +575,7 @@ void llvm_compile(Llvm *llvm, char *output)
 void llvm_validate(Llvm *llvm)
 {
     char *error_msg = NULL;
+
     LLVMBool result = LLVMVerifyModule(llvm->module, LLVMAbortProcessAction, &error_msg);
 
     if (result != 0)
