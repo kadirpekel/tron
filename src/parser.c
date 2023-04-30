@@ -270,7 +270,7 @@ Expression *parse_binary_expression(Parser *p, int min_precedence)
             {
                 next_token(p);
 
-                Expression *right = parse_binary_expression(p, min_precedence + 1);
+                Expression *right = parse_binary_expression(p, i + 1);
                 if (right == NULL)
                 {
                     parse_error(p, "Expected expression after binary operator");
