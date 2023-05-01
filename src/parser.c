@@ -256,32 +256,47 @@ Expression *parse_binary_expression(Parser *p, int min_precedence)
 {
     Expression *left = parse_unary_expression(p);
 
-    Token *op_token = p->token;
-    int i;
-    for (i = min_precedence; i < sizeof(PRECEDENCE_TABLE) / sizeof(PRECEDENCE_TABLE[0]); i++)
+    while (1)
     {
-
-        int num_types = sizeof(PRECEDENCE_TABLE[i]) / sizeof(PRECEDENCE_TABLE[i][0]);
-
-        int j;
-        for (j = 0; j < num_types; j++)
+        Token *op_token = p->token;
+        int precedence = -1;
+        int i;
+        for (i = 0; i < sizeof(PRECEDENCE_TABLE) / sizeof(PRECEDENCE_TABLE[0]); i++)
         {
-            if (PRECEDENCE_TABLE[i][j] == op_token->token_type)
-            {
-                next_token(p);
+            int num_types = sizeof(PRECEDENCE_TABLE[i]) / sizeof(PRECEDENCE_TABLE[i][0]);
 
-                Expression *right = parse_binary_expression(p, i + 1);
-                if (right == NULL)
+            int j;
+            for (j = 0; j < num_types; j++)
+            {
+                if (PRECEDENCE_TABLE[i][j] == op_token->token_type)
                 {
-                    parse_error(p, "Expected expression after binary operator");
+                    precedence = i;
+                    break;
                 }
-                TypeInfo *type_info = dup_type_info(left->type_info);
-                left = new_expression(op_token, left, right, NULL, type_info);
-                goto end;
+            }
+
+            if (precedence >= 0)
+            {
+                break;
             }
         }
+
+        if (precedence < min_precedence)
+        {
+            break;
+        }
+
+        next_token(p);
+
+        Expression *right = parse_binary_expression(p, precedence + 1);
+        if (right == NULL)
+        {
+            parse_error(p, "Expected expression after binary operator");
+        }
+        TypeInfo *type_info = dup_type_info(left->type_info);
+        left = new_expression(op_token, left, right, NULL, type_info);
     }
-end:
+
     return left;
 }
 

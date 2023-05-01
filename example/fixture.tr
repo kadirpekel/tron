@@ -2,7 +2,7 @@ func foo(a: int) {
     var i = 0;
     while (i < 20) {
         i = i + 1;
-        if ((i % 2) == 0) {
+        if (i % 2 + 1 == 0) {
             continue;
         } else if (i > a) {
             break;
