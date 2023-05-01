@@ -25,7 +25,7 @@ LlvmScopeInfo *new_llvm_scope_info(LLVMValueRef function_ref, LLVMBasicBlockRef 
     llvm_scope_info->function_ref = function_ref;
     llvm_scope_info->break_block = break_block;
     llvm_scope_info->continue_block = continue_block;
-    llvm_scope_info->interrupt_block = NULL;
+    llvm_scope_info->jump_to = NULL;
     return llvm_scope_info;
 }
 
@@ -337,13 +337,16 @@ LLVMBasicBlockRef llvm_visit_block(Llvm *llvm, ScopeType scope_type, Block *bloc
     {
         llvm->scope = push_scope(llvm->scope, scope_type, llvm_scope_info, NULL, NULL);
         llvm_visit(llvm, block->statements);
-        if (llvm_scope_info->interrupt_block != NULL)
+        if (!llvm_scope_info->has_returned)
         {
-            LLVMBuildBr(llvm->builder, llvm_scope_info->interrupt_block);
-        }
-        else if (llvm_exit_block != NULL)
-        {
-            LLVMBuildBr(llvm->builder, llvm_exit_block);
+            if (llvm_scope_info->jump_to != NULL)
+            {
+                LLVMBuildBr(llvm->builder, llvm_scope_info->jump_to);
+            }
+            else if (llvm_exit_block != NULL)
+            {
+                LLVMBuildBr(llvm->builder, llvm_exit_block);
+            }
         }
         llvm->scope = pop_scope(llvm->scope);
     }
@@ -376,8 +379,8 @@ void llvm_visit_function(Llvm *llvm, Function *function)
 
     insert_symbol(llvm->scope, SYMBOL_FUNCTION, function->name, new_llvm_symbol_info(type, value));
 
-    LLVMBasicBlockRef llvm_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
-    LLVMPositionBuilderAtEnd(llvm->builder, llvm_block);
+    LLVMBasicBlockRef entry_block = LLVMAppendBasicBlockInContext(llvm->context, value, "entry");
+    LLVMPositionBuilderAtEnd(llvm->builder, entry_block);
     LlvmScopeInfo *llvm_scope_info = new_llvm_scope_info(value, NULL, NULL);
 
     // Update the values in the LlvmSymbolInfo for each parameter
@@ -391,7 +394,7 @@ void llvm_visit_function(Llvm *llvm, Function *function)
         param = param->next;
     }
 
-    llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, llvm_block, NULL, llvm_scope_info);
+    llvm_visit_block(llvm, SCOPE_FUNCTION, function->body, entry_block, NULL, llvm_scope_info);
 }
 
 void llvm_visit_if(Llvm *llvm, If *if_)
@@ -452,14 +455,14 @@ void llvm_visit_break(Llvm *llvm, Break *break_)
 {
     LlvmScopeInfo *enclosing_llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
     LlvmScopeInfo *llvm_scope_info = llvm->scope->info;
-    llvm_scope_info->interrupt_block = enclosing_llvm_scope_info->break_block;
+    llvm_scope_info->jump_to = enclosing_llvm_scope_info->break_block;
 }
 
 void llvm_visit_continue(Llvm *llvm, Continue *continue_)
 {
     LlvmScopeInfo *enclosing_llvm_scope_info = find_enclosing_scope_info(llvm->scope, SCOPE_WHILE);
     LlvmScopeInfo *llvm_scope_info = llvm->scope->info;
-    llvm_scope_info->interrupt_block = enclosing_llvm_scope_info->continue_block;
+    llvm_scope_info->jump_to = enclosing_llvm_scope_info->continue_block;
 }
 
 void llvm_visit_while(Llvm *llvm, While *while_)
@@ -498,6 +501,8 @@ void llvm_visit_return(Llvm *llvm, Return *return_)
 {
     LLVMValueRef ret_value = llvm_visit_expression(llvm, return_->expression);
     LLVMBuildRet(llvm->builder, ret_value);
+    LlvmScopeInfo *llvm_scope_info = llvm->scope->info;
+    llvm_scope_info->has_returned = true;
 }
 
 void llvm_visit_statement(Llvm *llvm, Node *node)
@@ -544,7 +549,7 @@ void llvm_visit(Llvm *llvm, Node *node)
     LlvmScopeInfo *scope_info = llvm->scope->info;
     while (current != NULL)
     {
-        if (scope_info->interrupt_block == NULL)
+        if (scope_info->jump_to == NULL || !scope_info->has_returned)
         {
             llvm_visit_statement(llvm, current);
         }

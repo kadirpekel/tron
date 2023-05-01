@@ -40,7 +40,8 @@ typedef struct LlvmScopeInfo
     LLVMValueRef function_ref;
     LLVMBasicBlockRef break_block;
     LLVMBasicBlockRef continue_block;
-    LLVMBasicBlockRef interrupt_block;
+    LLVMBasicBlockRef jump_to;
+    bool has_returned;
 } LlvmScopeInfo;
 
 typedef struct Llvm

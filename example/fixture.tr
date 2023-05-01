@@ -1,17 +1,16 @@
-func foo(a: int) {
-    var i = 0;
-    while (i < 20) {
-        i = i + 1;
-        if (i % 2 + 1 == 0) {
-            continue;
-        } else if (i > a) {
-            break;
-        }
-        print_int(i);
+func fib(n: int): int {
+    if (n == 0) {
+        return 0;
     }
-    return i;
+
+    if (n <= 2) {
+        return 1;
+    }
+
+    return fib(n - 2) + fib(n - 1);
 }
 
 func main() {
-    return foo(4);
+    print_int(fib(10));
+    return 0;
 }

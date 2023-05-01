@@ -632,18 +632,18 @@ Function *parse_function(Parser *p)
             function->type_info = new_type_info(TYPE_INFER);
         }
 
+        TypeInfo *symbol_type_info = dup_type_info(function->type_info);
+        if (!insert_symbol(p->scope->parent, SYMBOL_FUNCTION, function->name, symbol_type_info))
+        {
+            parse_error(p, "Symbol already exists");
+        }
+
         function->body = parse_block(p);
         exit_scope(p);
 
         if (function->body == NULL)
         {
             parse_error(p, "Function body is missing");
-        }
-
-        TypeInfo *symbol_type_info = dup_type_info(function->type_info);
-        if (!insert_symbol(p->scope, SYMBOL_FUNCTION, function->name, symbol_type_info))
-        {
-            parse_error(p, "Symbol already exists");
         }
 
         dispose_token(name_token);
