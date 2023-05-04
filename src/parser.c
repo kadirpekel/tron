@@ -147,10 +147,35 @@ void exit_scope(Parser *p)
 TypeInfo *parse_type_info(Parser *p)
 {
     TypeInfo *type_info = NULL;
+
     Symbol *symbol;
     if ((symbol = accept_type(p)) != NULL)
     {
         type_info = dup_type_info(symbol->info);
+
+        ArrayInfo *current;
+        Token *lbracket_token;
+        while ((lbracket_token = accept_token(p, 1, T_LBRACKET)))
+        {
+            if (current == NULL)
+            {
+                current = new_array_info(-1);
+                type_info->array_info = current;
+            }
+            else
+            {
+                current->next = new_array_info(-1);
+                current = current->next;
+            }
+
+            Token *integer_token;
+            if ((integer_token = accept_token(p, 1, T_INTEGER)))
+            {
+                current->size = atoi(integer_token->buffer);
+            }
+            dispose_token(expect_token(p, 1, T_RBRACKET));
+            dispose_token(lbracket_token);
+        }
     }
     return type_info;
 }

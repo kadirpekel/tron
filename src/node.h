@@ -24,9 +24,16 @@
 #include "type.h"
 #include "utils.h"
 
+typedef struct ArrayInfo
+{
+    int size;
+    struct ArrayInfo *next;
+} ArrayInfo;
+
 typedef struct TypeInfo
 {
     Type type;
+    ArrayInfo *array_info;
     struct TypeInfo *next;
 } TypeInfo;
 
@@ -164,6 +171,7 @@ TypeInfo *new_type_info(Type type);
 If *new_if(Expression *condition, Block *body);
 While *new_while(Expression *condition, Block *body);
 ScopeInfo *new_scope_info(Function *function, bool is_loop);
+ArrayInfo *new_array_info(int size);
 
 void dispose_scope_info(ScopeInfo *scope_info);
 void dispose_node(Node *node);
@@ -182,6 +190,7 @@ void dispose_return(Return *return_);
 void dispose_type_info(TypeInfo *type_info);
 void dispose_if(If *if_);
 void dispose_while(While *while_);
+void dispose_array_info(ArrayInfo *array_info);
 
 TypeInfo *dup_type_info(TypeInfo *type_info);
 

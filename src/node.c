@@ -19,6 +19,13 @@
 
 #include "node.h"
 
+ArrayInfo *new_array_info(int size)
+{
+    ArrayInfo *array_info = malloc(sizeof(ArrayInfo));
+    array_info->size = size;
+    return array_info;
+}
+
 ScopeInfo *new_scope_info(Function *function, bool is_loop)
 {
     ScopeInfo *scope_info = malloc(sizeof(ScopeInfo));
@@ -387,4 +394,14 @@ void dispose_node(Node *node)
     }
     dispose_node(node->next);
     dispose_one(node);
+}
+
+void dispose_array_info(ArrayInfo *array_info)
+{
+    if (array_info == NULL)
+    {
+        return;
+    }
+    dispose_array_info(array_info->next);
+    free(array_info);
 }

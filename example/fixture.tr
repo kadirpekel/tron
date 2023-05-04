@@ -1,16 +1,4 @@
-func fib(n: int): int {
-    if (n == 0) {
-        return 0;
-    }
-
-    if (n <= 2) {
-        return 1;
-    }
-
-    return fib(n - 2) + fib(n - 1);
-}
-
 func main() {
-    print_int(fib(10));
+    var multidim_array: int[3][3];
     return 0;
 }
