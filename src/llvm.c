@@ -265,6 +265,9 @@ LLVMValueRef llvm_visit_expression(Llvm *llvm, Expression *expression)
             case N_NAME:
                 result = llvm_visit_name(llvm, (Name *)node->data);
                 break;
+            case N_ARRAY:
+                result = llvm_visit_expression(llvm, (Expression *)node->data);
+                break;
             default:
                 fprintf(stderr, "Unsupported node type in this context\n");
                 exit(EXIT_FAILURE);

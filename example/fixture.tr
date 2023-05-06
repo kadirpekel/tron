@@ -1,4 +1,4 @@
 func main() {
-    var multidim_array: int[3][3];
+    var multidim_array = {1,2,3};
     return 0;
 }

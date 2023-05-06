@@ -53,6 +53,7 @@ typedef enum NodeType
     N_FLOAT,
     N_CONTINUE,
     N_BREAK,
+    N_ARRAY
 } NodeType;
 
 typedef struct Node

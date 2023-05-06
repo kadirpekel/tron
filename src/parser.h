@@ -36,6 +36,7 @@ void dispose_parser(Parser *p);
 Expression *parse_term(Parser *p);
 Expression *parse_factor(Parser *p);
 Expression *parse_expression(Parser *p);
+Expression *parse_expressions(Parser *p);
 Node *parse_statement(Parser *p);
 Expression *parse_binary_expression(Parser *p, int min_precedence);
 Expression *parse_unary_expression(Parser *p);

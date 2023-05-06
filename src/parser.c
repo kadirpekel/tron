@@ -144,6 +144,42 @@ void exit_scope(Parser *p)
     p->depth--;
 }
 
+Expression *parse_array(Parser *p)
+{
+    dispose_token(expect_token(p, 1, T_LBRACE));
+
+    Expression *elements = parse_expressions(p);
+
+    dispose_token(expect_token(p, 1, T_RBRACE));
+
+    TypeInfo *type_info;
+    if (elements != NULL)
+    {
+        type_info = dup_type_info(elements->type_info);
+
+        Expression *current = elements;
+        int size = 0;
+        while (current != NULL)
+        {
+            size++;
+            current = current->next;
+        }
+        type_info->array_info = new_array_info(size);
+    }
+    else
+    {
+        type_info = new_type_info(TYPE_INFER);
+        type_info->array_info = new_array_info(-1);
+    }
+
+    return new_expression(
+        NULL,
+        NULL,
+        NULL,
+        new_node(N_ARRAY, elements),
+        type_info);
+}
+
 TypeInfo *parse_type_info(Parser *p)
 {
     TypeInfo *type_info = NULL;
@@ -358,6 +394,10 @@ Expression *parse_factor(Parser *p)
         dispose_token(expect_token(p, 1, T_LPAREN));
         expression = parse_expression(p);
         dispose_token(expect_token(p, 1, T_RPAREN));
+    }
+    else if (p->token->token_type == T_LBRACE)
+    {
+        expression = parse_array(p);
     }
     else
     {
